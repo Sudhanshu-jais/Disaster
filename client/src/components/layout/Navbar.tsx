@@ -25,8 +25,11 @@ import {
   HeartPulse,
   Sparkles,
   ChevronDown,
-  Bell
+  Bell,
+  Sun,
+  Moon
 } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 import { useDisaster } from '../../context/DisasterContext';
 import { PublicAlertsDrawer } from '../alerts/PublicAlertsDrawer';
 
@@ -35,6 +38,7 @@ export const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, isCitizen, isOperator, logout, quickDemoLogin } = useAuth();
   const { alerts } = useDisaster();
+  const { theme, toggleTheme } = useTheme();
   
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
@@ -260,6 +264,35 @@ export const Navbar: React.FC = () => {
 
                   {toolsDropdownOpen && (
                     <div className="absolute top-full left-0 mt-2 w-80 rounded-2xl bg-[#0A1022]/98 backdrop-blur-2xl border border-white/15 shadow-2xl p-2.5 grid grid-cols-1 gap-1 z-50 animate-in fade-in slide-in-from-top-2">
+                      {/* White / Dark Mode Option directly in the Tactical Tools Menu */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          toggleTheme();
+                          setToolsDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold bg-[#38bdf8]/10 hover:bg-[#38bdf8]/20 border border-[#38bdf8]/30 text-white transition-all cursor-pointer mb-1 shadow-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          {theme === 'dark' ? (
+                            <Sun className="w-4 h-4 text-amber-400 shrink-0" />
+                          ) : (
+                            <Moon className="w-4 h-4 text-sky-400 shrink-0" />
+                          )}
+                          <div className="text-left">
+                            <div className="font-bold text-white text-xs">
+                              {theme === 'dark' ? '☀️ Switch to White Mode' : '🌙 Switch to Dark Mode'}
+                            </div>
+                            <div className="text-[10px] text-white/60">
+                              {theme === 'dark' ? 'Daylight clean UI theme' : 'Midnight tactical UI theme'}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-[#38bdf8] font-bold shrink-0">
+                          {theme === 'dark' ? 'WHITE' : 'DARK'}
+                        </span>
+                      </button>
+
                       <div className="text-[10px] font-mono uppercase tracking-wider text-[#38bdf8] font-bold px-2 py-1">
                         Operational Intelligence Modules
                       </div>
@@ -290,6 +323,30 @@ export const Navbar: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Direct White / Dark Mode Option in Menu Bar */}
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className={`px-3 py-1.5 rounded-xl text-xs xl:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                    theme === 'dark'
+                      ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25'
+                      : 'bg-sky-100 border-sky-300 text-sky-800 hover:bg-sky-200'
+                  }`}
+                  title={theme === 'dark' ? 'Switch to White Mode' : 'Switch to Dark Mode'}
+                >
+                  {theme === 'dark' ? (
+                    <>
+                      <Sun className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>White Mode</span>
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="w-4 h-4 text-sky-600 shrink-0" />
+                      <span>Dark Mode</span>
+                    </>
+                  )}
+                </button>
               </>
             )}
 
@@ -300,6 +357,29 @@ export const Navbar: React.FC = () => {
             
             {!isAuthenticated ? (
               <div className="flex items-center gap-2">
+                {/* Guest White / Dark Mode Switch */}
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  title={theme === 'dark' ? 'Switch to White Theme' : 'Switch to Dark Theme'}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer shrink-0 border ${
+                    theme === 'dark'
+                      ? 'bg-amber-500/20 border-amber-400/50 text-amber-300 hover:bg-amber-500/30'
+                      : 'bg-sky-100 border-sky-300 text-sky-800 hover:bg-sky-200'
+                  }`}
+                >
+                  {theme === 'dark' ? (
+                    <>
+                      <Sun className="w-3.5 h-3.5 text-amber-400" />
+                      <span>White Mode ☀️</span>
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="w-3.5 h-3.5 text-sky-600" />
+                      <span>Dark Mode 🌙</span>
+                    </>
+                  )}
+                </button>
                 <Link
                   to="/citizen/sos"
                   className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FF5D67] text-white text-xs font-bold shadow-md hover:bg-[#ff434e] transition-all"
@@ -334,6 +414,30 @@ export const Navbar: React.FC = () => {
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" />
                   <span>{isCitizen ? 'Switch to Operator 🛡️' : 'Switch to Citizen 👤'}</span>
+                </button>
+
+                {/* Highly Prominent White / Dark Mode Pill Button */}
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  title={theme === 'dark' ? 'Switch to White Theme' : 'Switch to Dark Theme'}
+                  className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] font-mono font-bold transition-all cursor-pointer shrink-0 border ${
+                    theme === 'dark' 
+                      ? 'bg-amber-500/20 border-amber-400/50 text-amber-300 hover:bg-amber-500/30 hover:text-amber-200 shadow-md shadow-amber-950/30'
+                      : 'bg-sky-50 border-sky-300 text-sky-800 hover:bg-sky-100 shadow-sm'
+                  }`}
+                >
+                  {theme === 'dark' ? (
+                    <>
+                      <Sun className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                      <span className="text-amber-200">White Mode ☀️</span>
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="w-3.5 h-3.5 text-sky-600" />
+                      <span className="text-sky-900">Dark Mode 🌙</span>
+                    </>
+                  )}
                 </button>
 
                 {/* Emergency Public Alerts Bell Button */}
@@ -408,6 +512,28 @@ export const Navbar: React.FC = () => {
       {/* 4. Mobile Drawer Menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-[#05070d]/98 border-b border-white/10 px-4 pt-3 pb-6 space-y-4 max-h-[85vh] overflow-y-auto">
+          
+          {/* Quick Theme Switch Row in Mobile Drawer */}
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
+            <span className="text-xs font-semibold text-white/80">Theme Mode</span>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition-colors"
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-400" />
+                  <span>White Theme</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Dark Theme</span>
+                </>
+              )}
+            </button>
+          </div>
           
           {/* Unauthenticated Mobile Links */}
           {!isAuthenticated && (

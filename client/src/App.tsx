@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DisasterProvider } from './context/DisasterContext';
 import { Navbar } from './components/layout/Navbar';
@@ -344,19 +345,21 @@ const AnimatedRoutes: React.FC = () => {
 
 export default function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <DisasterProvider>
-          <div className="min-h-screen bg-[#05070d] text-[#F5F7FB] flex flex-col font-sans antialiased selection:bg-[#38bdf8] selection:text-[#05070d]">
-            <Navbar />
-            <main className="flex-1 flex flex-col relative overflow-hidden bg-[#05070d]">
-              <AnimatedRoutes />
-            </main>
-            <FloatingCopilot />
-            <NotificationToast />
-          </div>
-        </DisasterProvider>
-      </AuthProvider>
-    </Router>
+    <ThemeProvider>
+      <Router>
+        <AuthProvider>
+          <DisasterProvider>
+            <div className="min-h-screen bg-[#05070d] text-[#F5F7FB] flex flex-col font-sans antialiased selection:bg-[#38bdf8] selection:text-[#05070d]">
+              <Navbar />
+              <main className="flex-1 flex flex-col relative overflow-hidden bg-[#05070d]">
+                <AnimatedRoutes />
+              </main>
+              <FloatingCopilot />
+              <NotificationToast />
+            </div>
+          </DisasterProvider>
+        </AuthProvider>
+      </Router>
+    </ThemeProvider>
   );
 }

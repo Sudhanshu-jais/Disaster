@@ -214,3 +214,222 @@ html, body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ==========================================================================
+   DISASTEROS LIGHT THEME ENGINE (Universal High-Contrast Daylight Palette)
+   ========================================================================== */
+
+html.light {
+  color-scheme: light;
+}
+
+html.light, 
+html.light body, 
+html.light #root {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* Base Canvas & Main Layout Overrides */
+html.light main,
+html.light .min-h-screen,
+html.light [class*="bg-[#05070d]"],
+html.light [class*="bg-[#050817]"],
+html.light [class*="bg-[#080D1A]"],
+html.light [class*="bg-[#020617]"],
+html.light [class*="bg-[#030712]"] {
+  background-color: #f8fafc !important;
+}
+
+/* Glassmorphism & Primary Cards / Panels */
+html.light [class*="bg-[#0A1022]"],
+html.light [class*="bg-slate-900"],
+html.light [class*="bg-slate-950"],
+html.light [class*="bg-[#0e1726]"],
+html.light [class*="bg-[#131b2e]"] {
+  background-color: #ffffff !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05) !important;
+}
+
+/* Secondary Panels, Sub-cards, Modals, Inputs & Table Rows */
+html.light [class*="bg-[#0D162B]"],
+html.light [class*="bg-[#162035]"],
+html.light [class*="bg-[#1a233a]"] {
+  background-color: #f1f5f9 !important;
+}
+
+/* Translucent surfaces & Overlays */
+html.light [class*="bg-[#05070d]/95"],
+html.light [class*="bg-[#05070d]/98"],
+html.light [class*="bg-[#0A1022]/98"] {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+}
+
+html.light header {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-bottom-color: #e2e8f0 !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Transparent utility pills & buttons */
+html.light [class*="bg-white/5"],
+html.light [class*="bg-white/[0.04]"],
+html.light [class*="bg-white/[0.06]"] {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+}
+
+html.light [class*="bg-white/10"],
+html.light [class*="bg-white/[0.08]"] {
+  background-color: rgba(15, 23, 42, 0.07) !important;
+}
+
+html.light [class*="bg-white/15"],
+html.light [class*="bg-white/20"] {
+  background-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+html.light [class*="hover:bg-white/5"]:hover,
+html.light [class*="hover:bg-white/10"]:hover {
+  background-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Universal Typography Overrides in Light Mode */
+html.light [class*="text-[#F5F7FB]"],
+html.light [class*="text-slate-100"] {
+  color: #0f172a !important;
+}
+
+html.light .text-white,
+html.light [class*="text-white "] {
+  color: #0f172a !important;
+}
+
+/* Secondary & Muted Typography */
+html.light [class*="text-white/90"],
+html.light [class*="text-white/80"] {
+  color: #1e293b !important;
+}
+
+html.light [class*="text-white/70"],
+html.light [class*="text-white/60"],
+html.light [class*="text-[#9AA6BA]"],
+html.light [class*="text-[#94A3B8]"] {
+  color: #475569 !important;
+}
+
+html.light [class*="text-white/50"],
+html.light [class*="text-white/40"],
+html.light [class*="text-[#5E6D84]"] {
+  color: #64748b !important;
+}
+
+/* Maintain high contrast for Brand Cyan on white background */
+html.light [class*="text-[#38bdf8]"] {
+  color: #0284c7 !important;
+}
+
+/* Preserve text readability for elements with solid colored buttons/badges */
+html.light [class*="bg-[#FF5D67]"] span,
+html.light [class*="bg-[#FF5D67]"] div,
+html.light .btn-primary,
+html.light .pill-button-primary {
+  color: #020617 !important;
+}
+
+html.light [class*="bg-rose-600"],
+html.light [class*="bg-rose-500"],
+html.light [class*="bg-red-600"],
+html.light [class*="bg-emerald-600"],
+html.light [class*="bg-emerald-500"] {
+  color: #ffffff !important;
+}
+
+/* Universal Border Overrides */
+html.light [class*="border-white/5"],
+html.light [class*="border-white/10"],
+html.light [class*="border-white/15"],
+html.light [class*="border-white/20"],
+html.light [class*="border-white/[0.08]"],
+html.light [class*="border-white/[0.06]"],
+html.light [class*="border-slate-800"],
+html.light [class*="border-slate-700"] {
+  border-color: #e2e8f0 !important;
+}
+
+/* Inputs, Textareas and Dropdowns in Light Mode */
+html.light input:not([type="checkbox"]):not([type="radio"]),
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Terra Card Glassmorphism in Light Mode */
+html.light .terra-card {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+}
+
+html.light .terra-card:hover {
+  border-color: rgba(2, 132, 199, 0.4) !important;
+  box-shadow: 0 14px 35px -8px rgba(2, 132, 199, 0.15) !important;
+}
+
+/* Buttons in Light Mode */
+html.light .btn-ghost {
+  background-color: rgba(15, 23, 42, 0.05) !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+html.light .btn-ghost:hover {
+  background-color: rgba(15, 23, 42, 0.09) !important;
+  border-color: #94a3b8 !important;
+}
+
+html.light .pill-button-secondary {
+  background-color: rgba(15, 23, 42, 0.05) !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+/* Map Overrides in Light Mode (Daylight Street & Satellite View) */
+html.light .leaflet-container {
+  background: #e2e8f0 !important;
+}
+
+html.light .google-maps-dark-tiles,
+html.light .google-maps-dark-tiles img {
+  filter: none !important; /* Disable inversion filter so maps render bright, beautiful daylight imagery */
+}
+
+html.light .leaflet-popup-content-wrapper {
+  background: rgba(255, 255, 255, 0.98) !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 15px 35px rgba(15, 23, 42, 0.12) !important;
+}
+
+html.light .leaflet-popup-tip {
+  background: rgba(255, 255, 255, 0.98) !important;
+}
+
+/* Custom Scrollbars in Light Mode */
+html.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
