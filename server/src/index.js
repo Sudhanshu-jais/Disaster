@@ -3,6 +3,7 @@ import http from 'http';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
@@ -42,6 +43,19 @@ app.use((req, res, next) => {
 
 // Mount Master API
 app.use('/api', apiRouter);
+
+// Serve React production build as Single Page App (SPA)
+const clientDistPath = path.resolve(__dirname, '../../client/dist');
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/ws')) {
+      return next();
+    }
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+  console.log(`[DisasterOS] Serving static frontend from: ${clientDistPath}`);
+}
 
 // Global Error Handler (Section 41: Structured Errors, No Raw Stack Leaks)
 app.use((err, req, res, next) => {
