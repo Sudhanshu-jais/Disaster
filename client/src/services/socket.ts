@@ -42,17 +42,17 @@ class SocketClient {
       this.ws.onclose = () => {
         this.isConnecting = false;
         this.emit('STATUS_CHANGE', { connected: false });
-        // Auto-reconnect after 3 seconds
+        // Attempt reconnect after 15 seconds in background if server becomes active
         if (!this.reconnectTimer) {
           this.reconnectTimer = setTimeout(() => {
             this.reconnectTimer = null;
             this.connect();
-          }, 3000);
+          }, 15000);
         }
       };
 
-      this.ws.onerror = (err) => {
-        console.warn('[WebSocket Client] Connection error:', err);
+      this.ws.onerror = () => {
+        // Suppress noisy logs in local client mode
       };
     } catch (e) {
       console.warn('[WebSocket Client] Init exception:', e);

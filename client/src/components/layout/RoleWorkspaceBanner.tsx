@@ -192,6 +192,8 @@ export const RoleWorkspaceBanner: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  if (!user) return null;
+
   const cfg = ROLE_CONFIGS[user.role] || ROLE_CONFIGS.authority;
   const RoleIcon = cfg.icon;
 

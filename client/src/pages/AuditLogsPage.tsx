@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { HeaderBand } from '../components/layout/HeaderBand';
 import { api } from '../services/api';
 import { AuditLog } from '../types';
-import { ShieldCheck, Search, Filter, Clock, User, Layers } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 export const AuditLogsPage: React.FC = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -23,7 +23,7 @@ export const AuditLogsPage: React.FC = () => {
   });
 
   return (
-    <div className="flex-1 bg-slate-50 flex flex-col pb-12">
+    <div className="flex-1 bg-[#050817] text-[#F5F7FB] flex flex-col pb-16">
       <HeaderBand
         breadcrumbs={[
           { label: 'Home', path: '/' },
@@ -38,24 +38,24 @@ export const AuditLogsPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full mt-6 space-y-4">
         
         {/* Search & Filter Bar */}
-        <div className="card-soft p-4 bg-white flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="bg-[#0D162B] border border-white/10 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
           <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-white/40 absolute left-3 top-2.5" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search audit actions, users, or details..."
-              className="input-field text-xs pl-9"
+              className="w-full bg-[#0A1022] border border-white/15 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#38bdf8]"
             />
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <span className="text-xs font-semibold text-slate-500">Role:</span>
+            <span className="text-xs font-semibold text-[#9AA6BA]">Role:</span>
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="input-field text-xs w-auto py-1"
+              className="bg-[#0A1022] border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#38bdf8]"
             >
               <option value="all">All Roles</option>
               <option value="authority">Authority</option>
@@ -69,10 +69,10 @@ export const AuditLogsPage: React.FC = () => {
         </div>
 
         {/* Audit Log Table */}
-        <div className="card-soft overflow-hidden bg-white border-slate-200">
+        <div className="bg-[#0D162B] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left text-slate-600">
-              <thead className="bg-slate-50 text-slate-400 uppercase font-semibold text-[10px] border-b border-slate-200/80">
+            <table className="w-full text-xs text-left text-white/80">
+              <thead className="bg-[#0A1022] text-[#9AA6BA] uppercase font-semibold text-[10px] border-b border-white/10">
                 <tr>
                   <th className="py-3 px-4">Timestamp</th>
                   <th className="py-3 px-4">Operator</th>
@@ -82,25 +82,32 @@ export const AuditLogsPage: React.FC = () => {
                   <th className="py-3 px-4">Audit Details</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
+              <tbody className="divide-y divide-white/5 font-mono text-[11px]">
                 {filtered.map(l => (
-                  <tr key={l.id} className="hover:bg-slate-50/50">
-                    <td className="py-3 px-4 text-slate-400 whitespace-nowrap">
+                  <tr key={l.id} className="hover:bg-white/[0.03] transition-colors">
+                    <td className="py-3 px-4 text-white/40 whitespace-nowrap">
                       {new Date(l.timestamp).toLocaleTimeString()}
                     </td>
-                    <td className="py-3 px-4 font-sans font-medium text-slate-900 truncate max-w-[150px]">
+                    <td className="py-3 px-4 font-sans font-medium text-white truncate max-w-[150px]">
                       {l.user_email}
                     </td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-sans font-semibold capitalize">
+                      <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/80 text-[10px] font-sans font-semibold capitalize border border-white/10">
                         {l.user_role}
                       </span>
                     </td>
-                    <td className="py-3 px-4 font-bold text-blue-700">{l.action}</td>
-                    <td className="py-3 px-4 text-slate-500 uppercase">{l.entity_type}</td>
-                    <td className="py-3 px-4 font-sans text-slate-700">{l.details}</td>
+                    <td className="py-3 px-4 font-bold text-[#38bdf8]">{l.action}</td>
+                    <td className="py-3 px-4 text-[#9AA6BA] uppercase">{l.entity_type}</td>
+                    <td className="py-3 px-4 font-sans text-white/90">{l.details}</td>
                   </tr>
                 ))}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-white/40 font-sans">
+                      No audit logs match your query.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

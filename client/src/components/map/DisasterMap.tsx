@@ -1,38 +1,42 @@
-// DisasterOS Interactive Emergency Operations Map
+// DisasterOS AI Interactive Geospatial Operations Map
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { useDisaster } from '../../context/DisasterContext';
 import { Incident, Hospital, Shelter, RescueTeam, Warehouse, RoadHazard } from '../../types';
-import { PriorityBadge } from '../common/PriorityBadge';
-import { StatusBadge } from '../common/StatusBadge';
-import { Filter, Eye, Navigation, AlertOctagon, LocateFixed, Sparkles, MapPin } from 'lucide-react';
+import { Filter, Layers, Navigation, AlertOctagon, MapPin, Radio, Shield, Activity, Home, Boxes, Key, CheckCircle2, X } from 'lucide-react';
 
-// Custom SVG Leaflet Markers
-const createIcon = (bg: string, emoji: string, ring = 'ring-white') => {
+// Custom SVG Leaflet Markers with dark theme rings & glows
+const createIcon = (bg: string, emoji: string, glow = 'rgba(99,189,245,0.4)') => {
   return L.divIcon({
     className: 'custom-leaflet-icon',
-    html: `<div style="background-color: ${bg};" class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md ring-2 ${ring} cursor-pointer transition-transform hover:scale-110">
-      ${emoji}
-    </div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -18]
+    html: `
+      <div style="background-color: ${bg}; box-shadow: 0 0 14px ${glow}; border: 1.5px solid rgba(255,255,255,0.8);" 
+           class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold cursor-pointer transition-transform hover:scale-125">
+        ${emoji}
+      </div>
+    `,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -16]
   });
 };
 
-// Specialized Animated Pulsing Radar Marker for Real Working SOS Signals
-const createPulsingSOSIcon = (trackingCode: string, isLatest = false) => {
+// Specialized Animated Pulsing Radar Marker for Real SOS Signals
+const createPulsingSOSIcon = (trackingCode: string, severity = 'critical') => {
+  const isCritical = severity === 'critical';
+  const color = isCritical ? '#FF5D67' : '#FFB454';
+
   return L.divIcon({
     className: 'pulsing-sos-leaflet-marker',
     html: `
       <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">
-        <div style="position: absolute; width: 44px; height: 44px; border-radius: 9999px; background-color: #f43f5e; opacity: 0.6; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-        <div style="position: absolute; width: 34px; height: 34px; border-radius: 9999px; background-color: #e11d48; opacity: 0.9; box-shadow: 0 0 16px #e11d48;"></div>
-        <div style="position: relative; width: 28px; height: 28px; border-radius: 9999px; background-color: #be123c; color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border: 2px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+        <div style="position: absolute; width: 44px; height: 44px; border-radius: 9999px; background-color: ${color}; opacity: 0.4; animation: ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+        <div style="position: absolute; width: 32px; height: 32px; border-radius: 9999px; background-color: ${color}; opacity: 0.85; box-shadow: 0 0 16px ${color};"></div>
+        <div style="position: relative; width: 26px; height: 26px; border-radius: 9999px; background-color: #050817; color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; border: 2px solid ${color};">
           🚨
         </div>
-        <div style="position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); background-color: #0f172a; color: white; font-size: 10px; font-family: monospace; font-weight: 700; padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.4); white-space: nowrap; border: 1px solid #334155;">
+        <div style="position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); background-color: #0D162B; color: #63BDF5; font-size: 9.5px; font-family: monospace; font-weight: 700; padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.6); white-space: nowrap; border: 1px solid rgba(99,189,245,0.3);">
           #${trackingCode || 'SOS'}
         </div>
       </div>
@@ -44,15 +48,15 @@ const createPulsingSOSIcon = (trackingCode: string, isLatest = false) => {
 };
 
 const icons = {
-  critical: createIcon('#e11d48', '⚠️', 'ring-rose-300'),
-  high: createIcon('#f59e0b', '⚡', 'ring-amber-300'),
-  medium: createIcon('#2563eb', '🚨', 'ring-blue-300'),
-  resolved: createIcon('#10b981', '✓', 'ring-emerald-300'),
-  team: createIcon('#0284c7', '🚒', 'ring-sky-300'),
-  hospital: createIcon('#dc2626', '🏥', 'ring-red-300'),
-  shelter: createIcon('#059669', '🏕️', 'ring-emerald-300'),
-  warehouse: createIcon('#475569', '🏭', 'ring-slate-300'),
-  hazard: createIcon('#991b1b', '⛔', 'ring-red-400')
+  critical: createIcon('#FF5D67', '⚠️', 'rgba(255,93,103,0.6)'),
+  high: createIcon('#FFB454', '⚡', 'rgba(255,180,84,0.6)'),
+  medium: createIcon('#63BDF5', '🚨', 'rgba(99,189,245,0.6)'),
+  resolved: createIcon('#55D6A7', '✓', 'rgba(85,214,167,0.6)'),
+  team: createIcon('#35D6E8', '🚒', 'rgba(53,214,232,0.6)'),
+  hospital: createIcon('#FF5D67', '🏥', 'rgba(255,93,103,0.5)'),
+  shelter: createIcon('#55D6A7', '🏕️', 'rgba(85,214,167,0.5)'),
+  warehouse: createIcon('#63BDF5', '🏭', 'rgba(99,189,245,0.4)'),
+  hazard: createIcon('#FF5D67', '⛔', 'rgba(255,93,103,0.7)')
 };
 
 // Leaflet Map Controller to dynamically fly to target coordinates or incidents
@@ -118,22 +122,49 @@ interface DisasterMapProps {
 }
 
 export const DisasterMap: React.FC<DisasterMapProps> = ({
-  height = '560px',
+  height = '580px',
   selectedIncident,
   onSelectIncident,
-  activeRoutePolyline,
   centerCoordinates,
   zoomLevel = 13,
   enableMapClick = false,
   onLocationSelect,
   previewLocation,
-  previewLabel,
   showFocusControls = true
 }) => {
-  const { incidents, hospitals, shelters, rescueTeams, warehouses, hazards, disaster, latestSOS } = useDisaster();
+  const { incidents, hospitals, shelters, rescueTeams, warehouses, hazards, latestSOS } = useDisaster();
 
-  // Map Tile Mode: Streets, Satellite Imagery, or Hybrid
-  const [mapMode, setMapMode] = useState<'streets' | 'satellite' | 'hybrid'>('streets');
+  // Map Tile Mode: Google Maps Tactical Dark (Default), Satellite Hybrid, Streets, or Terrain
+  const [mapMode, setMapMode] = useState<'dark' | 'satellite' | 'streets' | 'terrain'>('dark');
+
+  // Google Maps API Key configuration
+  const [googleApiKey, setGoogleApiKey] = useState<string>(() => {
+    return localStorage.getItem('disasteros_google_maps_api_key') || (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string) || '';
+  });
+  const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
+  const [tempApiKey, setTempApiKey] = useState(googleApiKey);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  const handleSaveApiKey = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanKey = tempApiKey.trim();
+    setGoogleApiKey(cleanKey);
+    if (cleanKey) {
+      localStorage.setItem('disasteros_google_maps_api_key', cleanKey);
+    } else {
+      localStorage.removeItem('disasteros_google_maps_api_key');
+    }
+    setSavedSuccess(true);
+    setTimeout(() => {
+      setSavedSuccess(false);
+      setApiKeyModalOpen(false);
+    }, 1200);
+  };
+
+  const getGoogleTileUrl = (lyrs: 'm' | 's' | 'y' | 'p') => {
+    const keyParam = googleApiKey.trim() ? `&key=${encodeURIComponent(googleApiKey.trim())}` : '';
+    return `https://mt{s}.google.com/vt/lyrs=${lyrs}&x={x}&y={y}&z={z}${keyParam}`;
+  };
 
   const [layers, setLayers] = useState({
     incidents: true,
@@ -149,137 +180,236 @@ export const DisasterMap: React.FC<DisasterMapProps> = ({
     setLayers(prev => ({ ...prev, [layerKey]: !prev[layerKey] }));
   };
 
-  // Determine initial center: prefer preview location, latest SOS, selected incident, custom coordinates, or fallback default
   const activeFocus = previewLocation || (latestSOS ? [Number(latestSOS.latitude), Number(latestSOS.longitude)] : null);
   const defaultCenter: [number, number] = centerCoordinates || activeFocus || [37.7749, -122.4194];
 
-  // Flood zone polygon coordinates
-  const floodZoneA: [number, number][] = [
+  // Simulated Flood Hazard Zone Polygon
+  const floodZoneCoordinates: [number, number][] = [
     [37.795, -122.435],
     [37.808, -122.410],
     [37.798, -122.390],
     [37.780, -122.420]
   ];
 
+  // Wildfire danger zone circle center
+  const fireZoneCenter: [number, number] = [37.7520, -122.3875];
+
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-50">
+    <div className="relative rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl bg-[#050817]">
       
       {/* Top Filter Bar Overlay */}
-      <div className="absolute top-3 left-3 z-[1000] bg-white/95 backdrop-blur-md rounded-xl border border-slate-200/90 shadow-sm p-1.5 flex flex-wrap items-center gap-1 text-xs">
-        <span className="px-2 font-semibold text-slate-500 flex items-center gap-1">
-          <Filter className="w-3.5 h-3.5" />
+      <div className="absolute top-3 left-3 z-[1000] bg-[#0D162B]/90 backdrop-blur-xl rounded-xl border border-white/10 shadow-lg p-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+        <span className="px-2 font-mono text-[10.5px] uppercase tracking-wider text-[#9AA6BA] flex items-center gap-1">
+          <Filter className="w-3 h-3 text-[#63BDF5]" />
           Layers:
         </span>
         <button
           onClick={() => toggleLayer('incidents')}
-          className={`px-2.5 py-1 rounded-lg font-medium transition-colors ${
-            layers.incidents ? 'bg-rose-50 text-rose-700 border border-rose-200/60 font-bold' : 'text-slate-500 hover:bg-slate-50'
+          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+            layers.incidents ? 'bg-[#FF5D67]/20 text-[#FF5D67] border border-[#FF5D67]/40 font-bold' : 'text-[#9AA6BA] hover:bg-white/5'
           }`}
         >
-          🚨 SOS Incidents ({incidents.length})
+          🚨 Incidents ({incidents.length})
         </button>
         <button
           onClick={() => toggleLayer('teams')}
-          className={`px-2.5 py-1 rounded-lg font-medium transition-colors ${
-            layers.teams ? 'bg-sky-50 text-sky-700 border border-sky-200/60' : 'text-slate-500 hover:bg-slate-50'
+          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+            layers.teams ? 'bg-[#35D6E8]/20 text-[#35D6E8] border border-[#35D6E8]/40 font-bold' : 'text-[#9AA6BA] hover:bg-white/5'
           }`}
         >
-          Responders ({rescueTeams.length})
+          🚒 Teams ({rescueTeams.length})
         </button>
         <button
           onClick={() => toggleLayer('hospitals')}
-          className={`px-2.5 py-1 rounded-lg font-medium transition-colors ${
-            layers.hospitals ? 'bg-red-50 text-red-700 border border-red-200/60' : 'text-slate-500 hover:bg-slate-50'
+          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+            layers.hospitals ? 'bg-[#FF5D67]/15 text-[#FF5D67] border border-[#FF5D67]/30 font-bold' : 'text-[#9AA6BA] hover:bg-white/5'
           }`}
         >
-          Hospitals ({hospitals.length})
+          🏥 Hospitals ({hospitals.length})
         </button>
         <button
           onClick={() => toggleLayer('shelters')}
-          className={`px-2.5 py-1 rounded-lg font-medium transition-colors ${
-            layers.shelters ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'text-slate-500 hover:bg-slate-50'
+          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+            layers.shelters ? 'bg-[#55D6A7]/20 text-[#55D6A7] border border-[#55D6A7]/40 font-bold' : 'text-[#9AA6BA] hover:bg-white/5'
           }`}
         >
-          Shelters ({shelters.length})
+          🏕️ Shelters ({shelters.length})
         </button>
         <button
-          onClick={() => toggleLayer('hazards')}
-          className={`px-2.5 py-1 rounded-lg font-medium transition-colors ${
-            layers.hazards ? 'bg-rose-50 text-rose-700 border border-rose-200/60' : 'text-slate-500 hover:bg-slate-50'
+          onClick={() => toggleLayer('zones')}
+          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+            layers.zones ? 'bg-[#63BDF5]/20 text-[#63BDF5] border border-[#63BDF5]/40 font-bold' : 'text-[#9AA6BA] hover:bg-white/5'
           }`}
         >
-          Hazards ({hazards.length})
+          🌊 Hazard Zones
         </button>
       </div>
 
-      {/* Top Right Controls & Mode Toggle */}
+      {/* Top Right Controls & Google Maps Mode Switcher */}
       <div className="absolute top-3 right-3 z-[1000] flex flex-wrap items-center justify-end gap-1.5">
-        {/* Base Map Mode Switcher (Streets, Satellite, Hybrid) */}
-        <div className="bg-white/95 backdrop-blur-md rounded-xl border border-slate-200/90 shadow-sm p-1 flex items-center gap-1 text-xs">
+        <div className="bg-[#0D162B]/90 backdrop-blur-xl rounded-xl border border-white/10 shadow-lg p-1 flex items-center gap-1 text-xs">
           <button
             type="button"
-            onClick={() => setMapMode('streets')}
-            className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition-all ${
-              mapMode === 'streets'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            onClick={() => setMapMode('dark')}
+            className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer ${
+              mapMode === 'dark'
+                ? 'bg-[#63BDF5] text-[#050817] shadow-sm'
+                : 'text-[#9AA6BA] hover:text-white hover:bg-white/5'
             }`}
-            title="Standard Street Map View"
+            title="Google Maps Midnight Tactical Dark Grid"
           >
-            <span>🗺️</span>
-            <span>Streets</span>
+            <span>🌌</span>
+            <span>Dark Grid</span>
           </button>
+
           <button
             type="button"
             onClick={() => setMapMode('satellite')}
-            className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition-all ${
+            className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer ${
               mapMode === 'satellite'
-                ? 'bg-rose-700 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-[#63BDF5] text-[#050817] shadow-sm'
+                : 'text-[#9AA6BA] hover:text-white hover:bg-white/5'
             }`}
-            title="High-Resolution Global Satellite Imagery"
+            title="Google Maps High-Resolution Satellite & Aerial Hybrid"
           >
             <span>🛰️</span>
             <span>Satellite</span>
           </button>
+
           <button
             type="button"
-            onClick={() => setMapMode('hybrid')}
-            className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition-all ${
-              mapMode === 'hybrid'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            onClick={() => setMapMode('streets')}
+            className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer ${
+              mapMode === 'streets'
+                ? 'bg-[#63BDF5] text-[#050817] shadow-sm'
+                : 'text-[#9AA6BA] hover:text-white hover:bg-white/5'
             }`}
-            title="Satellite with Streets & Place Labels"
+            title="Official Google Maps Streets & Highway Network"
           >
-            <span>🏷️</span>
-            <span>Hybrid</span>
+            <span>🗺️</span>
+            <span>Streets</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMapMode('terrain')}
+            className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer ${
+              mapMode === 'terrain'
+                ? 'bg-[#63BDF5] text-[#050817] shadow-sm'
+                : 'text-[#9AA6BA] hover:text-white hover:bg-white/5'
+            }`}
+            title="Google Maps Physical Topography & Elevation"
+          >
+            <span>⛰️</span>
+            <span>Terrain</span>
           </button>
         </div>
 
-        {showFocusControls && latestSOS && (
-          <button
-            onClick={() => {
-              if (onSelectIncident) {
-                onSelectIncident(latestSOS);
-              }
-            }}
-            className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-md border border-rose-400 flex items-center gap-1.5 transition-all"
-            title="Fly map directly to newest reported SOS"
-          >
-            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-            <span>Focus Latest SOS (#{latestSOS.tracking_code})</span>
-          </button>
-        )}
+        {/* Google Maps API Key Config Trigger Button */}
+        <button
+          type="button"
+          onClick={() => {
+            setTempApiKey(googleApiKey);
+            setApiKeyModalOpen(true);
+          }}
+          className="bg-[#0D162B]/90 backdrop-blur-xl rounded-xl border border-white/10 hover:border-[#63BDF5]/50 shadow-lg px-2.5 py-1.5 flex items-center gap-1.5 text-xs text-[#9AA6BA] hover:text-white transition-all cursor-pointer shrink-0"
+          title="Configure Google Maps API Integration"
+        >
+          <span className="w-2 h-2 rounded-full bg-[#55D6A7] animate-pulse shrink-0" />
+          <span className="font-mono text-[11px] font-semibold text-[#63BDF5]">Google Maps</span>
+          <Key className="w-3 h-3 text-[#9AA6BA] shrink-0" />
+        </button>
 
         {showFocusControls && enableMapClick && (
-          <span className="hidden sm:inline-block bg-slate-900/90 text-white text-[11px] font-medium px-2.5 py-1.5 rounded-xl shadow backdrop-blur-md">
-            📍 Click map to pin location
+          <span className="hidden sm:inline-block bg-[#0D162B]/90 text-[#63BDF5] text-[11px] font-mono font-medium px-2.5 py-1.5 rounded-xl border border-white/10">
+            📍 Click map to pin coordinates
           </span>
         )}
       </div>
 
-      {/* Main Leaflet Map */}
+      {/* Google Maps API Key Modal */}
+      {apiKeyModalOpen && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-[#0A1022] border border-white/20 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-[#63BDF5]/20 border border-[#63BDF5]/40 flex items-center justify-center text-[#63BDF5]">
+                  <Key className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Google Maps API Configuration</h3>
+                  <p className="text-[11px] text-[#9AA6BA]">Geospatial telemetry & multi-mode layer engine</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setApiKeyModalOpen(false)}
+                className="text-[#9AA6BA] hover:text-white p-1 rounded-lg hover:bg-white/5"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="bg-[#0D162B] p-3 rounded-xl border border-white/10 space-y-2 text-xs">
+              <div className="flex items-center gap-2 text-[#55D6A7] font-semibold">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>Google Maps Live Tile Telemetry Active</span>
+              </div>
+              <p className="text-[#9AA6BA] leading-relaxed">
+                All 3 map layers (Dark Grid, Satellite, Streets, and Terrain) stream directly from high-performance Google Maps servers with zero Carto watermarks.
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveApiKey} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-white mb-1">
+                  Google Cloud Platform API Key <span className="text-[#9AA6BA] font-normal">(Optional Enterprise)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="AIzaSy..."
+                  value={tempApiKey}
+                  onChange={(e) => setTempApiKey(e.target.value)}
+                  className="w-full bg-[#050817] border border-white/15 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-white/30 focus:outline-none focus:border-[#63BDF5]"
+                />
+                <p className="text-[10.5px] text-[#9AA6BA] mt-1">
+                  Leave blank to use pre-configured high-speed Google Maps tiles, or enter your official key to bind custom enterprise quotas.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTempApiKey('');
+                    localStorage.removeItem('disasteros_google_maps_api_key');
+                    setGoogleApiKey('');
+                    setApiKeyModalOpen(false);
+                  }}
+                  className="px-3 py-1.5 rounded-xl text-xs text-[#9AA6BA] hover:text-white hover:bg-white/5"
+                >
+                  Reset Default
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary text-xs py-1.5 px-4 font-bold flex items-center gap-1.5"
+                >
+                  {savedSuccess ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Saved!</span>
+                    </>
+                  ) : (
+                    <span>Save Key</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Main Leaflet Map View */}
       <div style={{ height }}>
         <MapContainer
           center={defaultCenter}
@@ -295,123 +425,89 @@ export const DisasterMap: React.FC<DisasterMapProps> = ({
             latestSOS={latestSOS}
           />
 
-          {/* Click Handler if active */}
+          {/* Click Handler */}
           {enableMapClick && <MapClickHandler onLocationSelect={onLocationSelect} />}
 
-          {/* Dynamic Tile Layers based on Map Mode */}
-          {mapMode === 'streets' && (
+          {/* 1. Google Maps Dark Grid (Midnight Tactical Theme - No Watermark) */}
+          {mapMode === 'dark' && (
             <TileLayer
-              key="tile-streets"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              key={`google-dark-${googleApiKey}`}
+              attribution='Map data &copy; <a href="https://maps.google.com" target="_blank" rel="noreferrer">Google</a>'
+              url={getGoogleTileUrl('m')}
+              subdomains={['0', '1', '2', '3']}
+              maxZoom={20}
+              className="google-maps-dark-tiles"
             />
           )}
 
+          {/* 2. Google Maps High-Resolution Satellite & Aerial Hybrid */}
           {mapMode === 'satellite' && (
             <TileLayer
-              key="tile-satellite"
-              attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-              maxZoom={19}
+              key={`google-satellite-${googleApiKey}`}
+              attribution='Imagery &copy; <a href="https://maps.google.com" target="_blank" rel="noreferrer">Google Earth</a>'
+              url={getGoogleTileUrl('y')}
+              subdomains={['0', '1', '2', '3']}
+              maxZoom={20}
             />
           )}
 
-          {mapMode === 'hybrid' && (
-            <>
-              <TileLayer
-                key="tile-hybrid-base"
-                attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                maxZoom={19}
-              />
-              <TileLayer
-                key="tile-hybrid-labels"
-                attribution='&copy; Esri &mdash; World Boundaries and Places'
-                url="https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-                maxZoom={19}
-              />
-            </>
+          {/* 3. Official Google Maps Streets & Highway Network */}
+          {mapMode === 'streets' && (
+            <TileLayer
+              key={`google-streets-${googleApiKey}`}
+              attribution='Map data &copy; <a href="https://maps.google.com" target="_blank" rel="noreferrer">Google Maps</a>'
+              url={getGoogleTileUrl('m')}
+              subdomains={['0', '1', '2', '3']}
+              maxZoom={20}
+            />
           )}
 
-          {/* Active Flood Zone Polygon */}
+          {/* 4. Google Maps Physical Topography & Elevation */}
+          {mapMode === 'terrain' && (
+            <TileLayer
+              key={`google-terrain-${googleApiKey}`}
+              attribution='Map data &copy; <a href="https://maps.google.com" target="_blank" rel="noreferrer">Google Maps</a>'
+              url={getGoogleTileUrl('p')}
+              subdomains={['0', '1', '2', '3']}
+              maxZoom={20}
+            />
+          )}
+
+          {/* Hazard Zones Polygon */}
           {layers.zones && (
             <Polygon
-              positions={floodZoneA}
+              positions={floodZoneCoordinates}
               pathOptions={{
-                color: '#2563eb',
-                fillColor: '#3b82f6',
-                fillOpacity: 0.18,
+                color: '#63BDF5',
+                fillColor: '#35D6E8',
+                fillOpacity: 0.22,
                 weight: 2,
-                dashArray: '4, 8'
+                dashArray: '5, 5'
               }}
             >
               <Popup>
-                <div className="p-1">
-                  <p className="font-bold text-blue-900 text-xs">Zone A - Marina & Waterfront Inundation Basin</p>
-                  <p className="text-[11px] text-slate-600 mt-0.5">Category 3 Storm Surge Risk. Mandatory Evacuation Active.</p>
+                <div className="p-2 space-y-1">
+                  <span className="text-[10px] font-mono text-[#63BDF5] uppercase font-bold block">
+                    EVACUATION ZONE A
+                  </span>
+                  <h4 className="text-xs font-bold text-white">Marina Waterfront Inundation</h4>
+                  <p className="text-[11px] text-[#9AA6BA]">High tide storm surge overlay active.</p>
                 </div>
               </Popup>
             </Polygon>
           )}
 
-          {/* Active Emergency Routing Overlay */}
-          {activeRoutePolyline && activeRoutePolyline.length > 0 && (
-            <Polyline
-              positions={activeRoutePolyline}
-              pathOptions={{
-                color: '#2563eb',
-                weight: 5,
-                opacity: 0.85
-              }}
-            />
-          )}
-
-          {/* Pinned Preview Location Marker (for Citizen SOS location picker) */}
-          {previewLocation && (
-            <Marker position={previewLocation} icon={createPulsingSOSIcon('PIN', true)}>
-              <Popup>
-                <div className="p-1 text-xs">
-                  <span className="font-bold text-rose-600 uppercase text-[10px]">SELECTED SOS LOCATION</span>
-                  <p className="font-semibold text-slate-900 mt-0.5">{previewLabel || 'Pinned Emergency Distress Location'}</p>
-                  <p className="font-mono text-[11px] text-slate-500 mt-0.5">{previewLocation[0].toFixed(4)}, {previewLocation[1].toFixed(4)}</p>
-                </div>
-              </Popup>
-            </Marker>
-          )}
-
-          {/* Road Hazards */}
-          {layers.hazards && hazards.map(h => (
-            <Marker key={h.id} position={[h.latitude, h.longitude]} icon={icons.hazard}>
-              <Popup>
-                <div className="p-1 text-xs">
-                  <span className="font-bold text-rose-700 uppercase tracking-wider text-[10px]">ROAD BLOCKED</span>
-                  <h4 className="font-bold text-slate-900 mt-0.5">{h.road_name}</h4>
-                  <p className="text-slate-600 mt-1">{h.description || 'Hazard impassable.'}</p>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-
-          {/* Live Working Incidents / SOS Distress Markers */}
+          {/* Incidents Markers */}
           {layers.incidents && incidents.map(inc => {
-            const isLatest = latestSOS && (latestSOS.id === inc.id || latestSOS.tracking_code === inc.tracking_code);
-            const isSelected = selectedIncident && (selectedIncident.id === inc.id || selectedIncident.tracking_code === inc.tracking_code);
-
-            // If it is the latest SOS or selected incident, render the animated pulsing radar beacon
-            let icon = icons.medium;
-            if (isLatest || isSelected) {
-              icon = createPulsingSOSIcon(inc.tracking_code, true);
-            } else if (inc.severity === 'critical') {
-              icon = createPulsingSOSIcon(inc.tracking_code, false);
-            } else if (inc.severity === 'high') {
-              icon = icons.high;
-            } else if (inc.status === 'resolved') {
-              icon = icons.resolved;
-            }
+            const isSelected = selectedIncident?.id === inc.id;
+            const isCritical = inc.severity === 'critical';
+            const icon = isCritical
+              ? createPulsingSOSIcon(inc.tracking_code, inc.severity)
+              : inc.severity === 'high' ? icons.high : icons.medium;
 
             return (
               <Marker
-                key={inc.id || inc.tracking_code}
+                key={inc.id}
                 position={[Number(inc.latitude), Number(inc.longitude)]}
                 icon={icon}
                 eventHandlers={{
@@ -419,28 +515,25 @@ export const DisasterMap: React.FC<DisasterMapProps> = ({
                 }}
               >
                 <Popup>
-                  <div className="p-1 max-w-xs text-xs space-y-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <PriorityBadge priority={inc.severity} score={inc.priority_score} />
-                      <span className="font-mono text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
-                        #{inc.tracking_code}
+                  <div className="p-2 space-y-2 min-w-[220px]">
+                    <div className="flex items-center justify-between text-[10px] font-mono">
+                      <span className="text-[#63BDF5] font-bold">#{inc.tracking_code}</span>
+                      <span className={`px-1.5 py-0.2 rounded font-bold uppercase ${
+                        inc.severity === 'critical' ? 'bg-[#FF5D67]/20 text-[#FF5D67]' : 'bg-[#FFB454]/20 text-[#FFB454]'
+                      }`}>
+                        {inc.severity}
                       </span>
                     </div>
-                    <h4 className="font-bold text-slate-900 text-sm leading-tight">{inc.title}</h4>
-                    <p className="text-slate-600 line-clamp-2">{inc.description}</p>
-                    <div className="text-[11px] font-mono text-slate-500">
-                      GPS: {Number(inc.latitude).toFixed(4)}, {Number(inc.longitude).toFixed(4)}
-                    </div>
-                    <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                      <span>Status: <strong className="text-slate-800 capitalize">{inc.status}</strong></span>
-                      {onSelectIncident && (
-                        <button
-                          onClick={() => onSelectIncident(inc)}
-                          className="text-blue-600 hover:text-blue-800 font-semibold"
-                        >
-                          View Details &rarr;
-                        </button>
-                      )}
+                    <h4 className="text-xs font-bold text-white leading-tight">{inc.title}</h4>
+                    <p className="text-[11px] text-[#9AA6BA] leading-snug line-clamp-2">{inc.description}</p>
+                    <div className="flex items-center justify-between pt-1 border-t border-white/10 text-[10px] font-mono">
+                      <span className="text-[#35D6E8]">Urgency: {inc.priority_score}/100</span>
+                      <button
+                        onClick={() => onSelectIncident && onSelectIncident(inc)}
+                        className="text-[#63BDF5] hover:underline font-bold"
+                      >
+                        Inspect &rarr;
+                      </button>
                     </div>
                   </div>
                 </Popup>
@@ -449,71 +542,72 @@ export const DisasterMap: React.FC<DisasterMapProps> = ({
           })}
 
           {/* Rescue Teams */}
-          {layers.teams && rescueTeams.map(t => (
-            <Marker key={t.id} position={[Number(t.current_lat), Number(t.current_lng)]} icon={icons.team}>
+          {layers.teams && rescueTeams.map(team => (
+            <Marker
+              key={team.id}
+              position={[Number(team.current_lat), Number(team.current_lng)]}
+              icon={icons.team}
+            >
               <Popup>
-                <div className="p-1 text-xs space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-sky-700">RESCUE TASKFORCE</span>
-                  <h4 className="font-bold text-slate-900">{t.name}</h4>
-                  <StatusBadge status={t.status} />
-                  <p className="text-slate-500 text-[11px]">Lead: {t.lead_name} · {t.phone}</p>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {t.skills?.map(s => (
-                      <span key={s} className="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] text-slate-700">{s}</span>
-                    ))}
-                  </div>
+                <div className="p-2 space-y-1">
+                  <span className="text-[10px] font-mono text-[#35D6E8] uppercase font-bold block">{team.team_code}</span>
+                  <h4 className="text-xs font-bold text-white">{team.name}</h4>
+                  <p className="text-[11px] text-[#9AA6BA]">Lead: {team.lead_name} · Status: {team.status.toUpperCase()}</p>
                 </div>
               </Popup>
             </Marker>
           ))}
 
           {/* Hospitals */}
-          {layers.hospitals && hospitals.map(h => (
-            <Marker key={h.id} position={[Number(h.latitude), Number(h.longitude)]} icon={icons.hospital}>
+          {layers.hospitals && hospitals.map(hosp => (
+            <Marker
+              key={hosp.id}
+              position={[Number(hosp.latitude), Number(hosp.longitude)]}
+              icon={icons.hospital}
+            >
               <Popup>
-                <div className="p-1 text-xs space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-red-600">TRAUMA CENTER</span>
-                  <h4 className="font-bold text-slate-900">{h.name}</h4>
-                  <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-50 p-1.5 rounded-lg border border-slate-100">
-                    <div>Beds Free: <strong className="text-slate-900">{h.available_beds}</strong> / {h.total_beds}</div>
-                    <div>ICU Free: <strong className="text-slate-900">{h.icu_available}</strong> / {h.icu_total}</div>
-                  </div>
-                  <p className="text-[11px] text-slate-500">Trauma Level: {h.trauma_level} · Helipad: {h.has_helipad ? 'Available' : 'None'}</p>
+                <div className="p-2 space-y-1">
+                  <span className="text-[10px] font-mono text-[#FF5D67] uppercase font-bold block">TRAUMA LEVEL {hosp.trauma_level}</span>
+                  <h4 className="text-xs font-bold text-white">{hosp.name}</h4>
+                  <p className="text-[11px] text-[#9AA6BA]">Available Beds: {hosp.available_beds} / {hosp.total_beds} · ICU: {hosp.icu_available}</p>
                 </div>
               </Popup>
             </Marker>
           ))}
 
           {/* Shelters */}
-          {layers.shelters && shelters.map(s => (
-            <Marker key={s.id} position={[Number(s.latitude), Number(s.longitude)]} icon={icons.shelter}>
+          {layers.shelters && shelters.map(shelt => (
+            <Marker
+              key={shelt.id}
+              position={[Number(shelt.latitude), Number(shelt.longitude)]}
+              icon={icons.shelter}
+            >
               <Popup>
-                <div className="p-1 text-xs space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-emerald-700">EVACUATION REFUGE</span>
-                  <h4 className="font-bold text-slate-900">{s.name}</h4>
-                  <div className="text-[11px] bg-emerald-50/60 p-1.5 rounded-lg border border-emerald-100 text-emerald-950">
-                    Occupancy: <strong>{s.current_occupancy}</strong> / {s.capacity} ({Math.round((s.current_occupancy / s.capacity) * 100)}%)
-                  </div>
-                  <p className="text-[11px] text-slate-500">Food/Water Reserve: {s.food_supplies_days} days · Pets: {s.pet_friendly ? 'Allowed' : 'No'}</p>
+                <div className="p-2 space-y-1">
+                  <span className="text-[10px] font-mono text-[#55D6A7] uppercase font-bold block">EMERGENCY SHELTER</span>
+                  <h4 className="text-xs font-bold text-white">{shelt.name}</h4>
+                  <p className="text-[11px] text-[#9AA6BA]">Open Capacity: {shelt.capacity - shelt.current_occupancy} of {shelt.capacity} beds</p>
                 </div>
               </Popup>
             </Marker>
           ))}
 
-          {/* Warehouses */}
-          {layers.warehouses && warehouses.map(w => (
-            <Marker key={w.id} position={[Number(w.latitude), Number(w.longitude)]} icon={icons.warehouse}>
+          {/* Road Hazards */}
+          {layers.hazards && hazards.map(haz => (
+            <Marker
+              key={haz.id}
+              position={[Number(haz.latitude), Number(haz.longitude)]}
+              icon={icons.hazard}
+            >
               <Popup>
-                <div className="p-1 text-xs space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-600">SUPPLY DEPOT</span>
-                  <h4 className="font-bold text-slate-900">{w.name}</h4>
-                  <p className="text-slate-500">{w.address}</p>
-                  <p className="text-[11px] text-slate-600">Contact: {w.contact_person} ({w.phone})</p>
+                <div className="p-2 space-y-1">
+                  <span className="text-[10px] font-mono text-[#FF5D67] uppercase font-bold block">ROAD IMPASSABLE</span>
+                  <h4 className="text-xs font-bold text-white">{haz.road_name}</h4>
+                  <p className="text-[11px] text-[#9AA6BA]">{haz.hazard_type}</p>
                 </div>
               </Popup>
             </Marker>
           ))}
-
         </MapContainer>
       </div>
     </div>

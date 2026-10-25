@@ -1,265 +1,152 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useDisaster } from '../context/DisasterContext';
-import { useAuth } from '../context/AuthContext';
-import { HeaderBand } from '../components/layout/HeaderBand';
-import { StatusBadge } from '../components/common/StatusBadge';
-import { Shelter } from '../types';
-import { api } from '../services/api';
-import { 
-  Home, 
-  Users, 
-  CheckCircle2, 
-  ShieldCheck, 
-  HeartPulse, 
-  Sparkles, 
-  Navigation,
-  Check,
-  Phone,
-  Layers,
-  MapPin
-} from 'lucide-react';
+import { Home, Users, HeartPulse, ShieldCheck, MapPin, ArrowRight, Dog, Utensils, Droplets } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const SheltersPage: React.FC = () => {
-  const { shelters, refreshData } = useDisaster();
-  const { user } = useAuth();
   const navigate = useNavigate();
+  const { shelters } = useDisaster();
 
-  const [editingShelter, setEditingShelter] = useState<Shelter | null>(null);
-  const [occupancy, setOccupancy] = useState<number>(0);
-  const [status, setStatus] = useState<string>('open');
-  const [checkedInNotice, setCheckedInNotice] = useState<string | null>(null);
-
-  const isCitizen = user.role === 'citizen';
-  const isVolunteer = user.role === 'volunteer' || user.role === 'ngo';
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingShelter) return;
-    try {
-      await api.updateShelterOccupancy(editingShelter.id, {
-        current_occupancy: occupancy,
-        status: status as any
-      });
-      refreshData();
-      setEditingShelter(null);
-    } catch (e: any) {
-      alert(`Error updating: ${e.message}`);
-    }
-  };
-
-  const handleCitizenCheckIn = (shelterName: string) => {
-    setCheckedInNotice(`You have safely registered at ${shelterName}. Family notification broadcast active.`);
-    setTimeout(() => setCheckedInNotice(null), 4000);
-  };
+  const totalCapacity = shelters.reduce((acc, s) => acc + s.capacity, 0);
+  const totalOccupancy = shelters.reduce((acc, s) => acc + s.current_occupancy, 0);
+  const totalAvailable = totalCapacity - totalOccupancy;
 
   return (
-    <div className="flex-1 bg-slate-50 flex flex-col pb-12">
-      <HeaderBand
-        breadcrumbs={[
-          { label: 'Home', path: '/' },
-          { label: 'Evacuation' },
-          { label: 'Shelters & Safe Havens' }
-        ]}
-        title="Emergency Shelters & Evacuee Coordination"
-        description="Public refuge safe havens, real-time occupancy counts, food/water reserve buffers, and medical support."
-      />
+    <div className="flex-1 bg-[#050817] text-[#F5F7FB] flex flex-col pb-16">
+      
+      {/* Top Banner */}
+      <div className="bg-[#0A1022] border-b border-white/[0.08] px-4 py-4 sm:px-6">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-[#63BDF5] font-bold">
+                CIVILIAN EVACUATION SANCTUARIES
+              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#55D6A7] animate-pulse" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+              Emergency Shelters & Intake Capacity
+            </h1>
+          </div>
+
+          <button
+            onClick={() => navigate('/command-center')}
+            className="pill-button-secondary text-xs py-2 px-4 self-start sm:self-auto cursor-pointer shrink-0"
+          >
+            <span className="shrink-0 whitespace-nowrap">Command Center</span>
+            <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+          </button>
+        </div>
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full mt-6 space-y-6">
-
-        {/* ROLE WORKSPACE: CITIZEN LOOKING FOR SAFE REFUGE */}
-        {isCitizen && (
-          <div className="card-soft bg-blue-50/80 border-blue-200 p-4 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0">
-                  <Home className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Evacuation Safe Haven Guidance (Citizen Mode)</h3>
-                  <p className="text-xs text-slate-600">
-                    All listed shelters provide dry beds, potable drinking water, hot meals, and onsite first-aid medical attendants.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => navigate('/map')}
-                className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-2xs whitespace-nowrap flex items-center gap-1.5"
-              >
-                <Navigation className="w-3.5 h-3.5" />
-                Evacuation Route Map
-              </button>
-            </div>
-
-            {checkedInNotice && (
-              <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>{checkedInNotice}</span>
-              </div>
-            )}
+        
+        {/* Sample Data Disclaimer Banner */}
+        <div className="p-3.5 rounded-2xl bg-[#0D162B] border border-white/10 text-xs text-[#9AA6BA] flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-[#63BDF5] shrink-0" />
+            <span>
+              <strong className="text-white">Sample Operational Telemetry:</strong> Shelter occupancy and food buffer metrics are modeled for demo scenario validation. Real-world intake counts require official municipal verification.
+            </span>
           </div>
-        )}
+          <span className="text-[10px] font-mono text-[#63BDF5] uppercase tracking-wider shrink-0">
+            SIMULATED FEED
+          </span>
+        </div>
 
-        {/* Metric summary */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="card-soft p-4 bg-white">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Total Shelter Capacity</span>
-            <p className="text-2xl font-bold text-slate-900 mt-1">
-              {shelters.reduce((acc, s) => acc + s.capacity, 0)}
-            </p>
-            <span className="text-xs text-slate-400">Total beds/spaces</span>
+        {/* Global Capacity Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="terra-card p-5">
+            <span className="text-[11px] font-mono text-[#9AA6BA] uppercase tracking-wider block mb-1">Total Regional Capacity</span>
+            <div className="text-3xl font-black text-white font-telemetry">{totalCapacity}</div>
+            <span className="text-xs text-[#9AA6BA] mt-1 block">Registered refuge beds across 4 facilities</span>
           </div>
 
-          <div className="card-soft p-4 bg-white">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Currently Sheltered</span>
-            <p className="text-2xl font-bold text-blue-600 mt-1">
-              {shelters.reduce((acc, s) => acc + s.current_occupancy, 0)}
-            </p>
-            <span className="text-xs text-slate-400">Verified evacuees</span>
+          <div className="terra-card p-5">
+            <span className="text-[11px] font-mono text-[#9AA6BA] uppercase tracking-wider block mb-1">Current Occupancy</span>
+            <div className="text-3xl font-black text-[#FFB454] font-telemetry">{totalOccupancy}</div>
+            <span className="text-xs text-[#9AA6BA] mt-1 block">{Math.round((totalOccupancy / totalCapacity) * 100)}% capacity utilized</span>
           </div>
 
-          <div className="card-soft p-4 bg-white">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Spaces Available Now</span>
-            <p className="text-2xl font-bold text-emerald-600 mt-1">
-              {shelters.reduce((acc, s) => acc + (s.capacity - s.current_occupancy), 0)}
-            </p>
-            <span className="text-xs text-slate-400">Immediate intake</span>
-          </div>
-
-          <div className="card-soft p-4 bg-white">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Open Facilities</span>
-            <p className="text-2xl font-bold text-slate-900 mt-1">
-              {shelters.filter(s => s.status === 'open').length} / {shelters.length}
-            </p>
-            <span className="text-xs text-slate-400">Operational</span>
+          <div className="terra-card p-5 border-[#55D6A7]/30 bg-gradient-to-b from-[#55D6A7]/10 to-transparent">
+            <span className="text-[11px] font-mono text-[#55D6A7] uppercase tracking-wider font-bold block mb-1">Available Intake Places</span>
+            <div className="text-3xl font-black text-[#55D6A7] font-telemetry">{totalAvailable}</div>
+            <span className="text-xs text-[#55D6A7] mt-1 block">Immediate admissions accepted</span>
           </div>
         </div>
 
-        {/* Shelters Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {shelters.map(s => {
-            const percent = Math.round((s.current_occupancy / s.capacity) * 100);
+        {/* Shelters List */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {shelters.map(shelt => {
+            const free = shelt.capacity - shelt.current_occupancy;
+            const percent = Math.round((shelt.current_occupancy / shelt.capacity) * 100);
+            const isFull = shelt.status === 'at_capacity' || free <= 0;
+
             return (
-              <div key={s.id} className="card-soft p-5 bg-white border-slate-200 space-y-4">
-                <div className="flex items-start justify-between">
+              <div key={shelt.id} className="terra-card p-6 space-y-4">
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-base font-bold text-slate-900 leading-snug">{s.name}</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">{s.address}</p>
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#9AA6BA] block">
+                      INTAKE SECTOR · {shelt.id.toUpperCase()}
+                    </span>
+                    <h3 className="text-lg font-bold text-white leading-snug">{shelt.name}</h3>
+                    <p className="text-xs text-[#9AA6BA] flex items-center gap-1 mt-1">
+                      <MapPin className="w-3.5 h-3.5 text-[#35D6E8]" />
+                      {shelt.address}
+                    </p>
                   </div>
-                  <StatusBadge status={s.status} />
+
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase ${
+                    isFull ? 'bg-[#FF5D67]/20 text-[#FF5D67] border border-[#FF5D67]/40' : 'bg-[#55D6A7]/20 text-[#55D6A7] border border-[#55D6A7]/40'
+                  }`}>
+                    {isFull ? 'At Capacity' : 'Accepting Intake'}
+                  </span>
                 </div>
 
-                {/* Progress bar */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-slate-600">
-                    <span>Occupancy Load:</span>
-                    <strong className="text-slate-900">{percent}% ({s.current_occupancy} / {s.capacity})</strong>
+                {/* Capacity Gauge */}
+                <div className="space-y-1.5 bg-[#050817]/60 p-4 rounded-xl border border-white/5">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-[#9AA6BA]">Occupancy: {shelt.current_occupancy} / {shelt.capacity}</span>
+                    <span className="font-bold text-white">{free} places open ({percent}%)</span>
                   </div>
-                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full ${percent > 90 ? 'bg-rose-500' : percent > 70 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                  <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        isFull ? 'bg-[#FF5D67]' : percent > 75 ? 'bg-[#FFB454]' : 'bg-[#55D6A7]'
+                      }`}
                       style={{ width: `${percent}%` }}
                     />
                   </div>
                 </div>
 
-                {/* Logistics details */}
-                <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                  <div>Food Reserves: <strong>{s.food_supplies_days} days</strong></div>
-                  <div>Water Reserves: <strong>{s.water_supplies_days} days</strong></div>
-                  <div>Medical Onsite: <strong>{s.medical_staff_present ? 'Yes' : 'No'}</strong></div>
-                  <div>Pet Friendly: <strong>{s.pet_friendly ? 'Allowed' : 'No'}</strong></div>
-                </div>
-
-                {/* Action button */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-[11px] text-slate-400">
-                    {s.capacity - s.current_occupancy} beds remaining
-                  </span>
-                  <div className="flex items-center gap-2">
-                    {isCitizen ? (
-                      <button
-                        onClick={() => handleCitizenCheckIn(s.name)}
-                        className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs"
-                      >
-                        Safe Check-In
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setEditingShelter(s);
-                          setOccupancy(s.current_occupancy);
-                          setStatus(s.status);
-                        }}
-                        className="px-3 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700"
-                      >
-                        Update Intake
-                      </button>
-                    )}
+                {/* Facility Badges */}
+                <div className="flex flex-wrap items-center gap-3 text-xs text-[#9AA6BA]">
+                  <div className="flex items-center gap-1">
+                    <Utensils className="w-3.5 h-3.5 text-[#63BDF5]" />
+                    <span>{shelt.food_supplies_days} Days Food</span>
                   </div>
+                  <div className="flex items-center gap-1">
+                    <Droplets className="w-3.5 h-3.5 text-[#35D6E8]" />
+                    <span>{shelt.water_supplies_days} Days Water</span>
+                  </div>
+                  {shelt.medical_staff_present && (
+                    <div className="flex items-center gap-1 text-[#55D6A7]">
+                      <HeartPulse className="w-3.5 h-3.5" />
+                      <span>Medical Staff Present</span>
+                    </div>
+                  )}
+                  {shelt.pet_friendly && (
+                    <div className="flex items-center gap-1 text-[#63BDF5]">
+                      <Dog className="w-3.5 h-3.5" />
+                      <span>Pet Friendly</span>
+                    </div>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
-
       </div>
-
-      {/* Edit Intake Modal */}
-      {editingShelter && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 max-w-sm w-full shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-slate-900">
-              Update {editingShelter.name} Occupancy
-            </h3>
-
-            <form onSubmit={handleUpdate} className="space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
-                  Current Occupant Headcount (Max {editingShelter.capacity})
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max={editingShelter.capacity}
-                  value={occupancy}
-                  onChange={(e) => setOccupancy(Number(e.target.value))}
-                  className="input-field text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Shelter Status</label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="input-field text-xs"
-                >
-                  <option value="open">Open (Accepting Evacuees)</option>
-                  <option value="at_capacity">At Capacity (Full)</option>
-                  <option value="closed">Closed / Evacuated</option>
-                </select>
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingShelter(null)}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
-                >
-                  Save Intake
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

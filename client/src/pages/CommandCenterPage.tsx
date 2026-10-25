@@ -1,12 +1,9 @@
-import React, { useState } from 'react';
+// DisasterOS AI Tactical Operational Command Center
+import React, { useState, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDisaster } from '../context/DisasterContext';
-import { HeaderBand } from '../components/layout/HeaderBand';
-import { KpiCard } from '../components/common/KpiCard';
 import { DisasterMap } from '../components/map/DisasterMap';
-import { IncidentCard } from '../components/incidents/IncidentCard';
-import { IncidentDetailModal } from '../components/incidents/IncidentDetailModal';
-import { AllocationModal } from '../components/allocation/AllocationModal';
-import { Incident } from '../types';
+import { Incident, IncidentStatus, SeverityLevel } from '../types';
 import { 
   Radio, 
   AlertTriangle, 
@@ -15,19 +12,28 @@ import {
   Activity, 
   Home, 
   ShieldAlert, 
-  Sliders, 
   Filter, 
-  Sparkles, 
   PlusCircle, 
-  ArrowUpRight,
+  ArrowRight,
   TrendingUp,
-  RotateCcw
+  RotateCcw,
+  Search,
+  CheckCircle2,
+  Clock,
+  MapPin,
+  HeartPulse,
+  Send,
+  X,
+  Layers,
+  ChevronRight,
+  Sliders,
+  ShieldCheck,
+  Check,
+  PackageCheck
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 
 export const CommandCenterPage: React.FC = () => {
-  const { user, setRole } = useAuth();
+  const navigate = useNavigate();
   const { 
     disaster, 
     incidents, 
@@ -37,488 +43,746 @@ export const CommandCenterPage: React.FC = () => {
     inventory, 
     missions, 
     refreshData,
-    startSimulationCascade 
+    createIncident,
+    updateIncidentStatus,
+    allocateResource,
+    releaseResource,
+    dispatchMission,
+    resetDemoData,
+    isDemoMode
   } = useDisaster();
 
-  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
-  const [allocationIncident, setAllocationIncident] = useState<Incident | null>(null);
-  const [severityFilter, setSeverityFilter] = useState<string>('all');
-  const [bottomTab, setBottomTab] = useState<'missions' | 'hospitals' | 'inventory' | 'shelters'>('missions');
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [severityFilter, setSeverityFilter] = useState<'all' | 'critical' | 'high' | 'medium'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'unresolved' | 'resolved'>('all');
+  
+  // Selected Incident for Contextual Panel
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(() => incidents[0] || null);
 
-  // Sliding indicators
-  const filterContainerRef = React.useRef<HTMLDivElement>(null);
-  const [filterIndicator, setFilterIndicator] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
+  // Bottom drawer active tab
+  const [bottomTab, setBottomTab] = useState<'teams' | 'hospitals' | 'inventory' | 'shelters'>('teams');
 
-  const tabContainerRef = React.useRef<HTMLDivElement>(null);
-  const [tabIndicator, setTabIndicator] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
+  // Create Incident Modal State
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [newType, setNewType] = useState('flood');
+  const [newSeverity, setNewSeverity] = useState<SeverityLevel>('critical');
+  const [newLocation, setNewLocation] = useState('Embarcadero Pier 14');
+  const [newLat, setNewLat] = useState(37.7950);
+  const [newLng, setNewLng] = useState(-122.3980);
+  const [newAffected, setNewAffected] = useState(25);
+  const [newMedical, setNewMedical] = useState(true);
+  const [newChildren, setNewChildren] = useState(true);
+  const [newTrapped, setNewTrapped] = useState(4);
 
-  React.useEffect(() => {
-    if (!filterContainerRef.current) return;
-    const activeBtn = filterContainerRef.current.querySelector(`[data-filter="${severityFilter}"]`) as HTMLElement | null;
-    if (activeBtn) {
-      setFilterIndicator({ left: activeBtn.offsetLeft, width: activeBtn.offsetWidth });
-    }
-  }, [severityFilter]);
+  // Resource Dispatch Inline Form
+  const [selectedResourceType, setSelectedResourceType] = useState('Medical Trauma Kits');
+  const [selectedQty, setSelectedQty] = useState(5);
+  const [allocError, setAllocError] = useState<string | null>(null);
+  const [allocSuccess, setAllocSuccess] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    if (!tabContainerRef.current) return;
-    const activeBtn = tabContainerRef.current.querySelector(`[data-tab="${bottomTab}"]`) as HTMLElement | null;
-    if (activeBtn) {
-      setTabIndicator({ left: activeBtn.offsetLeft, width: activeBtn.offsetWidth });
-    }
-  }, [bottomTab]);
+  // Filtered incidents
+  const filteredIncidents = useMemo(() => {
+    return incidents.filter(i => {
+      const matchesSearch = 
+        i.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        i.tracking_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (i.address && i.address.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  // Filtered incident list
-  const filteredIncidents = incidents.filter(i => {
-    if (severityFilter === 'all') return true;
-    return i.severity === severityFilter;
-  });
+      const matchesSeverity = severityFilter === 'all' || i.severity === severityFilter;
+      const matchesStatus = 
+        statusFilter === 'all' || 
+        (statusFilter === 'unresolved' && i.status !== 'resolved') ||
+        (statusFilter === 'resolved' && i.status === 'resolved');
 
-  const criticalIncidents = incidents.filter(i => i.severity === 'critical' && i.status !== 'resolved');
-  const activeSOSCount = incidents.filter(i => i.status !== 'resolved').length;
+      return matchesSearch && matchesSeverity && matchesStatus;
+    });
+  }, [incidents, searchQuery, severityFilter, statusFilter]);
+
+  const criticalCount = incidents.filter(i => i.severity === 'critical' && i.status !== 'resolved').length;
   const availableTeamsCount = rescueTeams.filter(t => t.status === 'available').length;
-  const totalFreeBeds = hospitals.reduce((acc, h) => acc + h.available_beds, 0);
-  const totalFreeShelter = shelters.reduce((acc, s) => acc + (s.capacity - s.current_occupancy), 0);
-  const lowStockCount = inventory.filter(i => i.status === 'critical' || i.status === 'low').length;
+  const totalBedsAvailable = hospitals.reduce((acc, h) => acc + h.available_beds, 0);
+
+  // Handle Create Incident Submission
+  const handleCreateIncident = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim()) return;
+
+    const created = await createIncident({
+      title: newTitle,
+      description: newDesc,
+      type: newType,
+      severity: newSeverity,
+      address: newLocation,
+      latitude: newLat,
+      longitude: newLng,
+      affected_count: Number(newAffected),
+      trapped_count: Number(newTrapped),
+      medical_urgency: newMedical,
+      has_children_elderly: newChildren
+    });
+
+    setSelectedIncident(created);
+    setCreateModalOpen(false);
+    // Reset form
+    setNewTitle('');
+    setNewDesc('');
+  };
+
+  // Handle Resource Allocation to Active Incident
+  const handleAllocate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedIncident) return;
+    setAllocError(null);
+    setAllocSuccess(null);
+
+    const res = allocateResource(selectedIncident.id, selectedResourceType, Number(selectedQty));
+    if (!res.success) {
+      setAllocError(res.error || 'Allocation failed');
+    } else {
+      setAllocSuccess(`Successfully dispatched ${selectedQty} units to #${selectedIncident.tracking_code}`);
+      setTimeout(() => setAllocSuccess(null), 3000);
+    }
+  };
 
   return (
-    <div className="flex-1 bg-slate-50 flex flex-col pb-12">
-      {/* Tinted Header Band */}
-      <HeaderBand
-        breadcrumbs={[
-          { label: 'Home', path: '/' },
-          { label: 'Emergency Operations' },
-          { label: 'Command Center' }
-        ]}
-        title={disaster ? `${disaster.title} · Command Center` : "DisasterOS Command Center"}
-        description="Unified tactical situational awareness, AI multi-factor prioritization, and resource coordination."
-        actionButton={
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => refreshData()}
-              className="p-2 rounded border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-colors"
-              title="Refresh telemetry"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => startSimulationCascade()}
-              className="px-3.5 py-1.5 rounded bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium flex items-center gap-1.5 transition-colors"
-            >
-              <Sliders className="w-3.5 h-3.5 text-slate-400" />
-              <span>Simulate Flood Cascade</span>
-            </button>
-          </div>
-        }
-      />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full mt-6 space-y-6">
-
-        {/* ROLE-SPECIFIC WORKSPACE: OPERATOR VS CITIZEN */}
-        {user.role === 'citizen' ? (
-          <div className="card-soft bg-emerald-50/80 border-emerald-300 p-4.5 rounded-xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 font-bold text-lg">
-                👤
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-emerald-600 text-white">
-                    Citizen Mode Active
-                  </span>
-                  <span className="text-xs text-emerald-900 font-semibold">Viewing Operator Command Console</span>
-                </div>
-                <h3 className="text-sm font-bold text-slate-900 mt-0.5">
-                  Need emergency assistance, evacuation help, or shelter?
-                </h3>
-                <p className="text-[11.5px] text-slate-600">
-                  This console is designed for emergency dispatchers. You can switch to the Citizen Safety Portal for 1-tap SOS distress and live tracking.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <Link
-                to="/sos"
-                className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-2xs whitespace-nowrap"
-              >
-                🚨 Go to Citizen SOS
-              </Link>
-              <button
-                onClick={() => setRole('authority')}
-                className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-2xs whitespace-nowrap"
-              >
-                Switch to Operator 🛡️
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="card-soft bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-4.5 rounded-xl shadow-md border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-amber-500/20 border border-amber-400/30 flex items-center justify-center shrink-0">
-                <Radio className="w-5 h-5 text-amber-400 animate-pulse" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-400 text-slate-950">
-                    OPERATOR CONSOLE
-                  </span>
-                  <span className="text-xs font-mono text-slate-300">Chief Marcus Vance · City EOC Command</span>
-                </div>
-                <h3 className="text-sm font-bold text-white mt-0.5">
-                  Unified Common Operational Picture & Multi-Agency Dispatch
-                </h3>
-                <p className="text-[11.5px] text-slate-300">
-                  Full operator authority active: verify citizen SOS requests, assign rescue teams, and balance hospital ICU beds.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Link
-                to="/incidents"
-                className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold transition-all shadow-2xs whitespace-nowrap"
-              >
-                🚨 SOS Triage Queue
-              </Link>
-              <Link
-                to="/allocation"
-                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-2xs whitespace-nowrap"
-              >
-                Approve Allocations
-              </Link>
-              <Link
-                to="/alerts"
-                className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all shadow-2xs whitespace-nowrap"
-              >
-                Broadcast Siren
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* KPI Row (Section 10) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <KpiCard
-            title="Critical SOS"
-            value={criticalIncidents.length}
-            subtitle="Immediate triage"
-            icon={AlertTriangle}
-            badge="Urgent"
-            badgeType="rose"
-          />
-          <KpiCard
-            title="Active Incidents"
-            value={activeSOSCount}
-            subtitle={`${incidents.filter(i => i.status === 'resolved').length} resolved`}
-            icon={Radio}
-            badge="Live"
-            badgeType="cobalt"
-          />
-          <KpiCard
-            title="Rescue Teams"
-            value={`${availableTeamsCount} / ${rescueTeams.length}`}
-            subtitle="Standby ready"
-            icon={ShieldAlert}
-            badge="Available"
-            badgeType="emerald"
-          />
-          <KpiCard
-            title="Hospital Beds"
-            value={totalFreeBeds}
-            subtitle="Citywide available"
-            icon={Activity}
-            badge="Capacity"
-            badgeType="cobalt"
-          />
-          <KpiCard
-            title="Shelter Spaces"
-            value={totalFreeShelter}
-            subtitle="Immediate intake"
-            icon={Home}
-            badge="Open"
-            badgeType="emerald"
-          />
-          <KpiCard
-            title="Inventory Alerts"
-            value={lowStockCount}
-            subtitle="Depot items low"
-            icon={Boxes}
-            badge={lowStockCount > 0 ? "Check Stock" : "Healthy"}
-            badgeType={lowStockCount > 0 ? "amber" : "emerald"}
-          />
-        </div>
-
-        {/* Main Grid: Interactive Map + Critical Incident Feed */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <div className="flex-1 flex flex-col bg-[#050817] text-[#F5F7FB] min-h-[calc(100vh-4rem)]">
+      
+      {/* 1. TOP STATUS & SEARCH BAR */}
+      <div className="bg-[#0A1022] border-b border-white/[0.08] px-4 py-3 sm:px-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           
-          {/* Left Column (8 cols): Interactive Operations Map */}
-          <div className="lg:col-span-8 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-slate-900" />
-                <h2 className="text-xs font-bold text-slate-900 uppercase font-mono tracking-wider">
-                  Live Operations Map & Spatial Hazards
-                </h2>
-              </div>
-              <div className="flex items-center gap-3 text-xs font-mono text-slate-500">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-600" /> CRITICAL
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> HIGH
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400" /> MEDIUM
-                </span>
-                <Link to="/map" className="text-slate-900 hover:underline font-sans text-xs font-medium flex items-center gap-0.5 ml-2">
-                  Full Tactical Map &rarr;
-                </Link>
-              </div>
+          {/* Left: Operational Sector Breadcrumb & Status */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-[#63BDF5]/15 border border-[#63BDF5]/30 flex items-center justify-center text-[#63BDF5] shrink-0">
+              <Radio className="w-4 h-4 animate-pulse shrink-0" />
             </div>
-
-            {/* The Map Component */}
-            <DisasterMap
-              height="530px"
-              selectedIncident={selectedIncident}
-              onSelectIncident={(inc) => setSelectedIncident(inc)}
-            />
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm font-bold text-white tracking-tight whitespace-nowrap">
+                  {disaster?.title || 'Tactical Incident Command Center'}
+                </h1>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#63BDF5]/20 text-[#63BDF5] border border-[#63BDF5]/30 shrink-0">
+                  {isDemoMode ? 'SIMULATION MODE' : 'LIVE FEED'}
+                </span>
+              </div>
+              <p className="text-[11px] font-mono text-[#9AA6BA]">
+                GRID: 37.7749° N, 122.4194° W · MULTI-FACTOR PRIORITIZATION ACTIVE
+              </p>
+            </div>
           </div>
 
-          {/* Right Column (4 cols): Critical Incident Feed */}
-          <div className="lg:col-span-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-rose-600" />
-                <h2 className="text-xs font-bold text-slate-900 uppercase font-mono tracking-wider">
-                  Critical Incident Feed
-                </h2>
-              </div>
-
-              {/* Severity Filter with Sliding Indicator */}
-              <div ref={filterContainerRef} className="relative flex items-center gap-0.5 text-[11px] font-mono bg-slate-100 p-0.5 rounded border border-slate-200">
-                <div
-                  className="absolute top-0.5 bottom-0.5 rounded bg-white shadow-2xs sliding-pill-indicator pointer-events-none"
-                  style={{
-                    transform: `translateX(${filterIndicator.left}px)`,
-                    width: `${filterIndicator.width}px`,
-                  }}
-                />
-                {(['all', 'critical', 'high'] as const).map(sev => (
-                  <button
-                    key={sev}
-                    data-filter={sev}
-                    onClick={() => setSeverityFilter(sev)}
-                    className={`relative z-10 px-2.5 py-0.5 rounded uppercase text-[10.5px] font-medium transition-colors ${
-                      severityFilter === sev ? 'text-slate-900 font-semibold' : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    {sev}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Incident Cards Stack */}
-            <div className="space-y-3 max-h-[530px] overflow-y-auto pr-1">
-              {filteredIncidents.length === 0 ? (
-                <div className="bg-white border border-slate-200 rounded p-8 text-center text-xs font-mono text-slate-400">
-                  No active incidents matching current filter.
-                </div>
-              ) : (
-                filteredIncidents.map((incident) => (
-                  <IncidentCard
-                    key={incident.id}
-                    incident={incident}
-                    isSelected={selectedIncident?.id === incident.id}
-                    onClick={() => setSelectedIncident(incident)}
-                    onAllocate={() => setAllocationIncident(incident)}
-                  />
-                ))
+          {/* Right: Search, Quick Filters & Actions */}
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            
+            {/* Search Input */}
+            <div className="relative flex-1 sm:w-64">
+              <Search className="w-3.5 h-3.5 text-[#9AA6BA] absolute left-3 top-1/2 -translate-y-1/2 shrink-0 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search incidents, codes, locations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-[#0D162B] border border-white/10 rounded-full pl-8 pr-3 py-1.5 text-xs text-white placeholder-[#9AA6BA] focus:outline-none focus:border-[#63BDF5]/50 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9AA6BA] hover:text-white text-xs shrink-0"
+                >
+                  ✕
+                </button>
               )}
             </div>
-          </div>
-        </div>
 
-        {/* Bottom Section: Connected Telemetry Tabs */}
-        <div className="bg-white border border-slate-200 p-5 rounded">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4 mb-4">
-            <div>
-              <h3 className="text-xs font-bold text-slate-900 uppercase font-mono tracking-wider">
-                Operational Agency Telemetry
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">Live multi-agency status and resource allocations across active sectors</p>
-            </div>
-
-            {/* Segmented Tab Controls with Sliding Pill Indicator */}
-            <div ref={tabContainerRef} className="relative inline-flex p-0.5 rounded bg-slate-100 border border-slate-200 text-xs font-mono">
-              <div
-                className="absolute top-0.5 bottom-0.5 rounded bg-white shadow-2xs sliding-pill-indicator pointer-events-none"
-                style={{
-                  transform: `translateX(${tabIndicator.left}px)`,
-                  width: `${tabIndicator.width}px`,
-                }}
-              />
-              {[
-                { id: 'missions', label: 'Missions', count: missions.length },
-                { id: 'hospitals', label: 'Hospitals', count: hospitals.length },
-                { id: 'shelters', label: 'Shelters', count: shelters.length },
-                { id: 'inventory', label: 'Depot Stock', count: inventory.length },
-              ].map(tab => (
+            {/* Severity Filter */}
+            <div className="flex items-center bg-[#0D162B] rounded-full p-0.5 border border-white/10 text-xs shrink-0">
+              {(['all', 'critical', 'high', 'medium'] as const).map(sev => (
                 <button
-                  key={tab.id}
-                  data-tab={tab.id}
-                  onClick={() => setBottomTab(tab.id as any)}
-                  className={`relative z-10 px-3 py-1 rounded text-[11px] uppercase tracking-wider font-medium transition-colors ${
-                    bottomTab === tab.id ? 'text-slate-900 font-semibold' : 'text-slate-600 hover:text-slate-900'
+                  key={sev}
+                  onClick={() => setSeverityFilter(sev)}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors cursor-pointer capitalize shrink-0 ${
+                    severityFilter === sev 
+                      ? 'bg-[#63BDF5] text-[#050817] font-bold' 
+                      : 'text-[#9AA6BA] hover:text-white'
                   }`}
                 >
-                  {tab.label} ({tab.count})
+                  {sev}
                 </button>
               ))}
             </div>
+
+            {/* Create Incident CTA */}
+            <button
+              onClick={() => setCreateModalOpen(true)}
+              className="pill-button-primary text-xs py-1.5 px-3.5 cursor-pointer shrink-0"
+            >
+              <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+              <span className="shrink-0 whitespace-nowrap">Report SOS</span>
+            </button>
+
+            {/* Reset Demo State Button */}
+            <button
+              onClick={resetDemoData}
+              title="Reset state to initial simulated dataset"
+              className="w-8 h-8 rounded-full bg-[#0D162B] border border-white/10 hover:border-[#63BDF5]/40 text-[#9AA6BA] hover:text-[#63BDF5] flex items-center justify-center transition-all cursor-pointer shrink-0"
+            >
+              <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. OPERATIONAL TELEMETRY METRIC STRIP */}
+      <div className="border-b border-white/[0.06] bg-[#050817] px-4 py-2 sm:px-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+          <div className="flex items-center gap-2">
+            <span className="text-[#9AA6BA]">ACTIVE INCIDENTS:</span>
+            <span className="text-white font-bold">{incidents.length}</span>
+            <span className="text-[#FF5D67]">({criticalCount} CRITICAL)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[#9AA6BA]">RESPONSE UNITS:</span>
+            <span className="text-[#35D6E8] font-bold">{availableTeamsCount} / {rescueTeams.length} READY</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[#9AA6BA]">TRAUMA BEDS:</span>
+            <span className="text-[#55D6A7] font-bold">{totalBedsAvailable} OPEN</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[#9AA6BA]">LATENCY BUFFER:</span>
+            <span className="text-[#63BDF5] font-bold">~3.8 MIN AVERAGE</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. MAIN WORKSPACE (Map + Incident Queue + Contextual Detail Panel) */}
+      <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-4 w-full grid grid-cols-1 lg:grid-cols-12 gap-4">
+        
+        {/* Left Column: Interactive Leaflet Map (Col 7) */}
+        <div className="lg:col-span-7 flex flex-col space-y-3">
+          <div className="relative rounded-2xl overflow-hidden border border-white/[0.08] shadow-xl flex-1 min-h-[420px] lg:min-h-[540px]">
+            <DisasterMap
+              height="100%"
+              selectedIncident={selectedIncident}
+              onSelectIncident={(inc) => setSelectedIncident(inc)}
+              enableMapClick={true}
+              onLocationSelect={(lat, lng) => {
+                setNewLat(lat);
+                setNewLng(lng);
+                setNewLocation(`Pinned Location (${lat}, ${lng})`);
+                setCreateModalOpen(true);
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Right Column: Incident Queue & Prioritization (Col 5) */}
+        <div className="lg:col-span-5 flex flex-col space-y-3">
+          
+          {/* Queue Header */}
+          <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                Prioritized Incident Queue
+              </span>
+              <span className="px-2 py-0.2 rounded-full text-[10px] font-mono font-bold bg-[#63BDF5]/20 text-[#63BDF5]">
+                {filteredIncidents.length}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#9AA6BA]">
+              <span>SORT:</span>
+              <span className="text-[#63BDF5] font-bold">PRIORITY SCORE &darr;</span>
+            </div>
           </div>
 
-          {/* Tab 1: Missions */}
-          {bottomTab === 'missions' && (
-            <div className="overflow-x-auto animate-slide-up">
-              <table className="w-full text-xs text-left text-slate-600">
-                <thead className="bg-slate-50 text-slate-400 uppercase font-semibold text-[10px] border-y border-slate-100">
-                  <tr>
-                    <th className="py-2.5 px-3">Mission Code</th>
-                    <th className="py-2.5 px-3">Priority</th>
-                    <th className="py-2.5 px-3">Status</th>
-                    <th className="py-2.5 px-3">Objective Directive</th>
-                    <th className="py-2.5 px-3">Assigned Team</th>
-                    <th className="py-2.5 px-3">Assigned At</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {missions.map(m => {
-                    const team = rescueTeams.find(t => t.id === m.team_id);
-                    return (
-                      <tr key={m.id} className="hover:bg-slate-50/50">
-                        <td className="py-2.5 px-3 font-mono font-bold text-slate-900">{m.mission_code}</td>
-                        <td className="py-2.5 px-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            m.priority === 'critical' ? 'bg-rose-50 text-rose-700' : 'bg-blue-50 text-blue-700'
-                          }`}>
-                            {m.priority}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 font-semibold capitalize text-slate-800">{m.status.replace('_', ' ')}</td>
-                        <td className="py-2.5 px-3 truncate max-w-xs">{m.objective}</td>
-                        <td className="py-2.5 px-3 font-medium text-slate-900">{team?.name || 'Unassigned'}</td>
-                        <td className="py-2.5 px-3 text-slate-400 font-mono text-[11px]">{new Date(m.assigned_at).toLocaleTimeString()}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          {/* Incident Queue Scrollable List */}
+          <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
+            {filteredIncidents.length === 0 ? (
+              <div className="p-8 text-center text-xs text-[#9AA6BA] border border-dashed border-white/10 rounded-2xl">
+                No incidents match the active filter criteria.
+              </div>
+            ) : (
+              filteredIncidents.map((inc) => {
+                const isSelected = selectedIncident?.id === inc.id;
+                const isCritical = inc.severity === 'critical';
 
-          {/* Tab 2: Hospitals */}
-          {bottomTab === 'hospitals' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 animate-slide-up">
-              {hospitals.map(h => (
-                <div key={h.id} className="p-3.5 rounded border border-slate-200 bg-white space-y-2 interactive-hover-lift">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-xs text-slate-900">{h.name}</h4>
-                    <span className={`text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border ${
-                      h.status === 'open' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'
-                    }`}>
-                      {h.status}
+                return (
+                  <div
+                    key={inc.id}
+                    onClick={() => setSelectedIncident(inc)}
+                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative ${
+                      isSelected
+                        ? 'bg-[#0D162B] border-[#63BDF5] shadow-[0_0_20px_rgba(99,189,245,0.2)]'
+                        : 'bg-[#0A1022]/80 border-white/[0.08] hover:border-white/20 hover:bg-[#0D162B]/60'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase ${
+                          isCritical 
+                            ? 'bg-[#FF5D67]/20 text-[#FF5D67] border border-[#FF5D67]/40' 
+                            : inc.severity === 'high' 
+                            ? 'bg-[#FFB454]/20 text-[#FFB454] border border-[#FFB454]/40' 
+                            : 'bg-[#63BDF5]/20 text-[#63BDF5] border border-[#63BDF5]/40'
+                        }`}>
+                          {inc.severity}
+                        </span>
+                        <span className="font-mono text-xs text-[#63BDF5] font-bold">
+                          #{inc.tracking_code}
+                        </span>
+                      </div>
+
+                      {/* Score Badge */}
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] font-mono text-[#9AA6BA]">SCORE:</span>
+                        <span className={`text-xs font-mono font-black ${
+                          inc.priority_score > 90 ? 'text-[#FF5D67]' : inc.priority_score > 75 ? 'text-[#FFB454]' : 'text-[#63BDF5]'
+                        }`}>
+                          {inc.priority_score}
+                        </span>
+                      </div>
+                    </div>
+
+                    <h4 className="text-xs font-bold text-white leading-snug mb-1">
+                      {inc.title}
+                    </h4>
+
+                    <div className="flex items-center justify-between text-[11px] text-[#9AA6BA] font-mono pt-1 border-t border-white/[0.04]">
+                      <span className="truncate max-w-[200px]">📍 {inc.address || 'Active Sector'}</span>
+                      <span className={`capitalize font-semibold ${
+                        inc.status === 'resolved' ? 'text-[#55D6A7]' : inc.status === 'in_progress' ? 'text-[#35D6E8]' : 'text-[#FFB454]'
+                      }`}>
+                        {inc.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Contextual Detail Panel for Selected Incident */}
+          {selectedIncident && (
+            <div className="terra-card p-4 space-y-3.5 border-[#63BDF5]/30 bg-[#0D162B]">
+              <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-white/[0.08]">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-mono text-[#63BDF5] font-bold">
+                      #{selectedIncident.tracking_code}
+                    </span>
+                    <span className="text-[10px] font-mono uppercase px-2 py-0.2 rounded bg-white/10 text-white">
+                      {selectedIncident.type}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs pt-0.5 font-mono text-slate-600">
-                    <div>Beds: <strong className="text-slate-900 font-bold">{h.available_beds}</strong> / {h.total_beds}</div>
-                    <div>ICU: <strong className="text-slate-900 font-bold">{h.icu_available}</strong> / {h.icu_total}</div>
+                  <h3 className="text-sm font-bold text-white leading-snug">
+                    {selectedIncident.title}
+                  </h3>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-mono uppercase text-[#9AA6BA] block">Priority Score</span>
+                  <span className="text-xl font-mono font-black text-[#FF5D67]">
+                    {selectedIncident.priority_score}/100
+                  </span>
+                </div>
+              </div>
+
+              {/* Contributing factors explanation */}
+              <div className="bg-[#050817]/70 p-3 rounded-xl border border-white/5 space-y-1.5 text-xs">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-[#63BDF5] font-bold block">
+                  PRIORITIZATION FACTORS (RULE-BASED ENGINE)
+                </span>
+                <p className="text-[#F5F7FB] text-[11px] leading-relaxed">
+                  {selectedIncident.ai_classification?.rationale || 'Evaluated based on entrapment telemetry, population density in danger perimeter, and life-safety urgency.'}
+                </p>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  <span className="px-2 py-0.5 rounded bg-white/5 text-[10px] font-mono text-[#9AA6BA]">
+                    Affected: ~{selectedIncident.affected_count}
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-white/5 text-[10px] font-mono text-[#9AA6BA]">
+                    Trapped: {selectedIncident.trapped_count}
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-white/5 text-[10px] font-mono text-[#9AA6BA]">
+                    Medical Urgency: {selectedIncident.medical_urgency ? 'YES' : 'NO'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Status Transition Workflow Buttons */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-[#9AA6BA] font-bold block">
+                  STATUS LIFECYCLE (DEMO OPERATOR CONTROL)
+                </span>
+                <div className="grid grid-cols-5 gap-1 text-[10px] font-mono">
+                  {(['submitted', 'verified', 'assigned', 'in_progress', 'resolved'] as IncidentStatus[]).map((st) => {
+                    const isCurrent = selectedIncident.status === st;
+                    return (
+                      <button
+                        key={st}
+                        onClick={() => updateIncidentStatus(selectedIncident.id, st)}
+                        className={`py-1.5 rounded-lg border font-bold capitalize transition-all cursor-pointer ${
+                          isCurrent
+                            ? 'bg-[#63BDF5] text-[#050817] border-[#63BDF5]'
+                            : 'bg-[#050817] text-[#9AA6BA] border-white/10 hover:text-white hover:border-white/20'
+                        }`}
+                      >
+                        {st === 'in_progress' ? 'Active' : st}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Resource Dispatching Inline Form */}
+              <div className="pt-2 border-t border-white/[0.08] space-y-2">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-[#35D6E8] font-bold block">
+                  DISPATCH OPERATIONAL RESOURCES
+                </span>
+                
+                {allocError && (
+                  <div className="p-2 rounded-lg bg-[#FF5D67]/15 border border-[#FF5D67]/30 text-[11px] text-[#FF5D67]">
+                    {allocError}
                   </div>
-                  <p className="text-[11px] text-slate-500 font-mono">Trauma Level: {h.trauma_level} · Helipad: {h.has_helipad ? 'YES' : 'NO'}</p>
+                )}
+
+                {allocSuccess && (
+                  <div className="p-2 rounded-lg bg-[#55D6A7]/15 border border-[#55D6A7]/30 text-[11px] text-[#55D6A7]">
+                    {allocSuccess}
+                  </div>
+                )}
+
+                <form onSubmit={handleAllocate} className="flex items-center gap-2">
+                  <select
+                    value={selectedResourceType}
+                    onChange={(e) => setSelectedResourceType(e.target.value)}
+                    className="flex-1 bg-[#050817] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#63BDF5]/50"
+                  >
+                    <option value="Medical Trauma Kits">Trauma Medical Kits (Level-A)</option>
+                    <option value="Drinking Water">Drinking Water (10L Sealed)</option>
+                    <option value="MRE Ration Packs">MRE Ration Packs (72-hr)</option>
+                    <option value="Inflatable Tents">Inflatable Weather Tents</option>
+                    <option value="Heavy Diesel Generators">Portable Diesel Generators</option>
+                  </select>
+
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={selectedQty}
+                    onChange={(e) => setSelectedQty(Number(e.target.value))}
+                    className="w-16 bg-[#050817] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white text-center focus:outline-none focus:border-[#63BDF5]/50 font-mono"
+                  />
+
+                  <button
+                    type="submit"
+                    className="pill-button-primary text-xs py-1.5 px-3 cursor-pointer shrink-0"
+                  >
+                    <span>Dispatch</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 4. BOTTOM TABBED METRICS DRAWER (Teams, Hospitals, Shelters, Inventory) */}
+      <div className="border-t border-white/[0.08] bg-[#0A1022] mt-4 px-4 py-4 sm:px-6">
+        <div className="max-w-7xl mx-auto space-y-4">
+          
+          {/* Tab Selector Buttons */}
+          <div className="flex items-center gap-2 border-b border-white/[0.06] pb-2 text-xs">
+            {[
+              { id: 'teams', label: 'Response Units', count: rescueTeams.length, icon: Users },
+              { id: 'hospitals', label: 'Trauma Centers', count: hospitals.length, icon: Activity },
+              { id: 'shelters', label: 'Evacuation Shelters', count: shelters.length, icon: Home },
+              { id: 'inventory', label: 'Depot Stocks', count: inventory.length, icon: Boxes },
+            ].map(tab => {
+              const isActive = bottomTab === tab.id;
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setBottomTab(tab.id as any)}
+                  className={`px-3 py-1.5 rounded-full font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                    isActive
+                      ? 'bg-[#63BDF5] text-[#050817] font-bold shadow-sm'
+                      : 'text-[#9AA6BA] hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{tab.label}</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                    isActive ? 'bg-[#050817]/20 text-[#050817]' : 'bg-white/10 text-white'
+                  }`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Tab Content Display */}
+          {bottomTab === 'teams' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {rescueTeams.map(team => (
+                <div key={team.id} className="p-3 rounded-xl bg-[#0D162B] border border-white/5 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-mono text-[#35D6E8] font-bold">{team.team_code}</span>
+                    <span className={`px-1.5 py-0.2 rounded text-[9.5px] font-mono uppercase font-bold ${
+                      team.status === 'available' ? 'bg-[#55D6A7]/20 text-[#55D6A7]' : 'bg-[#FFB454]/20 text-[#FFB454]'
+                    }`}>
+                      {team.status}
+                    </span>
+                  </div>
+                  <h5 className="text-xs font-bold text-white leading-tight">{team.name}</h5>
+                  <p className="text-[10px] text-[#9AA6BA] font-mono">Lead: {team.lead_name}</p>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Tab 3: Shelters */}
+          {bottomTab === 'hospitals' && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {hospitals.map(hosp => (
+                <div key={hosp.id} className="p-3.5 rounded-xl bg-[#0D162B] border border-white/5 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[10px] font-mono text-[#FF5D67] font-bold">TRAUMA LEVEL {hosp.trauma_level}</span>
+                    <span className="text-[#55D6A7] font-mono text-xs font-bold">{hosp.available_beds} beds free</span>
+                  </div>
+                  <h5 className="text-xs font-bold text-white leading-snug">{hosp.name}</h5>
+                  <div className="flex items-center justify-between text-[11px] text-[#9AA6BA] font-mono pt-1 border-t border-white/5">
+                    <span>ICU Available: {hosp.icu_available} / {hosp.icu_total}</span>
+                    <span>Status: {hosp.status.toUpperCase()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {bottomTab === 'shelters' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 animate-slide-up">
-              {shelters.map(s => {
-                const percent = Math.round((s.current_occupancy / s.capacity) * 100);
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              {shelters.map(shelt => {
+                const freeBeds = shelt.capacity - shelt.current_occupancy;
                 return (
-                  <div key={s.id} className="p-3.5 rounded border border-slate-200 bg-white space-y-2 interactive-hover-lift">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold text-xs text-slate-900">{s.name}</h4>
-                      <span className="text-[11px] font-mono font-bold text-slate-700">{percent}%</span>
+                  <div key={shelt.id} className="p-3.5 rounded-xl bg-[#0D162B] border border-white/5 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[10px] font-mono text-[#55D6A7] font-bold">SHELTER REFUGE</span>
+                      <span className="font-mono text-xs text-white font-bold">{freeBeds} places</span>
                     </div>
-                    <div className="w-full h-1.5 rounded bg-slate-100 overflow-hidden">
-                      <div 
-                        className={`h-full ${percent > 90 ? 'bg-rose-600' : percent > 70 ? 'bg-amber-500' : 'bg-emerald-600'}`}
-                        style={{ width: `${percent}%` }}
-                      />
-                    </div>
-                    <p className="text-[11px] font-mono text-slate-500 flex justify-between">
-                      <span>Occupancy: {s.current_occupancy} / {s.capacity}</span>
-                      <span>Food Reserve: {s.food_supplies_days}d</span>
-                    </p>
+                    <h5 className="text-xs font-bold text-white leading-snug">{shelt.name}</h5>
+                    <p className="text-[10px] text-[#9AA6BA] truncate">📍 {shelt.address}</p>
                   </div>
                 );
               })}
             </div>
           )}
 
-          {/* Tab 4: Inventory */}
           {bottomTab === 'inventory' && (
-            <div className="overflow-x-auto animate-slide-up">
-              <table className="w-full text-xs text-left text-slate-600">
-                <thead className="bg-slate-50 text-slate-500 font-mono uppercase text-[10px] tracking-wider border-y border-slate-200">
-                  <tr>
-                    <th className="py-2.5 px-3">Item Name</th>
-                    <th className="py-2.5 px-3">Category</th>
-                    <th className="py-2.5 px-3">Available</th>
-                    <th className="py-2.5 px-3">Reserved</th>
-                    <th className="py-2.5 px-3">Min Threshold</th>
-                    <th className="py-2.5 px-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-mono">
-                  {inventory.slice(0, 6).map(item => (
-                    <tr key={item.id} className="hover:bg-slate-50">
-                      <td className="py-2.5 px-3 font-sans font-medium text-slate-900">{item.item_name}</td>
-                      <td className="py-2.5 px-3 capitalize font-sans text-slate-600">{item.category.replace('_', ' ')}</td>
-                      <td className="py-2.5 px-3 font-bold text-slate-900">{item.quantity_available} {item.unit}</td>
-                      <td className="py-2.5 px-3 text-slate-500">{item.quantity_reserved} {item.unit}</td>
-                      <td className="py-2.5 px-3 text-slate-500">{item.minimum_threshold} {item.unit}</td>
-                      <td className="py-2.5 px-3">
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider border ${
-                          item.status === 'healthy' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                          item.status === 'low' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200'
-                        }`}>
-                          {item.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {inventory.map(item => (
+                <div key={item.id} className="p-3 rounded-xl bg-[#0D162B] border border-white/5 space-y-1">
+                  <span className="text-[9.5px] font-mono uppercase text-[#9AA6BA] block">{item.category}</span>
+                  <h5 className="text-xs font-bold text-white truncate">{item.item_name}</h5>
+                  <div className="flex items-baseline justify-between text-xs font-mono pt-1">
+                    <span className="text-[#63BDF5] font-bold">{item.quantity_available}</span>
+                    <span className="text-[#9AA6BA] text-[10px]">{item.unit}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* Incident Detail Modal */}
-      <IncidentDetailModal
-        incident={selectedIncident}
-        onClose={() => setSelectedIncident(null)}
-        onAllocate={(inc) => setAllocationIncident(inc)}
-      />
+      {/* 5. CREATE INCIDENT MODAL */}
+      {createModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 bg-[#050817]/85 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => setCreateModalOpen(false)}
+        >
+          <div 
+            className="bg-[#0D162B] border border-white/10 rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-[#FF5D67]" />
+                <h3 className="text-base font-bold text-white">Report New Emergency Incident</h3>
+              </div>
+              <button
+                onClick={() => setCreateModalOpen(false)}
+                className="text-[#9AA6BA] hover:text-white text-xs px-2 py-1 rounded hover:bg-white/10"
+              >
+                ✕
+              </button>
+            </div>
 
-      {/* Smart Resource Allocation Modal */}
-      <AllocationModal
-        incident={allocationIncident}
-        onClose={() => setAllocationIncident(null)}
-      />
+            <form onSubmit={handleCreateIncident} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-[#9AA6BA] mb-1">
+                  Incident Title / Headline
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Marina Seawall Overflow & Stranded Transit"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  className="w-full bg-[#050817] border border-white/10 rounded-xl px-3 py-2 text-white placeholder-[#5E6D84] focus:outline-none focus:border-[#63BDF5]/50"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-mono uppercase text-[#9AA6BA] mb-1">
+                    Hazard Category
+                  </label>
+                  <select
+                    value={newType}
+                    onChange={(e) => setNewType(e.target.value)}
+                    className="w-full bg-[#050817] border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#63BDF5]/50"
+                  >
+                    <option value="flood">Flood / Inundation</option>
+                    <option value="wildfire">Wildfire / Heat</option>
+                    <option value="earthquake">Earthquake / Structural</option>
+                    <option value="medical">Mass Casualty / Trauma</option>
+                    <option value="infrastructure">Infrastructure Failure</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-mono uppercase text-[#9AA6BA] mb-1">
+                    Severity Level
+                  </label>
+                  <select
+                    value={newSeverity}
+                    onChange={(e) => setNewSeverity(e.target.value as SeverityLevel)}
+                    className="w-full bg-[#050817] border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#63BDF5]/50"
+                  >
+                    <option value="critical">Critical (Immediate Life-Threat)</option>
+                    <option value="high">High (Severe Exposure)</option>
+                    <option value="medium">Medium (Advisory / Monitoring)</option>
+                    <option value="low">Low (Contained)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-[#9AA6BA] mb-1">
+                  Location Address & Coordinates
+                </label>
+                <input
+                  type="text"
+                  value={newLocation}
+                  onChange={(e) => setNewLocation(e.target.value)}
+                  className="w-full bg-[#050817] border border-white/10 rounded-xl px-3 py-2 text-white placeholder-[#5E6D84] focus:outline-none focus:border-[#63BDF5]/50 mb-2"
+                />
+                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={newLat}
+                    onChange={(e) => setNewLat(Number(e.target.value))}
+                    className="bg-[#050817] border border-white/10 rounded-lg px-2.5 py-1.5 text-white"
+                    placeholder="Latitude"
+                  />
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={newLng}
+                    onChange={(e) => setNewLng(Number(e.target.value))}
+                    className="bg-[#050817] border border-white/10 rounded-lg px-2.5 py-1.5 text-white"
+                    placeholder="Longitude"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-mono uppercase text-[#9AA6BA] mb-1">
+                    Est. Affected People
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newAffected}
+                    onChange={(e) => setNewAffected(Number(e.target.value))}
+                    className="w-full bg-[#050817] border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#63BDF5]/50 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-mono uppercase text-[#9AA6BA] mb-1">
+                    Entrapped Persons
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={newTrapped}
+                    onChange={(e) => setNewTrapped(Number(e.target.value))}
+                    className="w-full bg-[#050817] border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#63BDF5]/50 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-[#9AA6BA] mb-1">
+                  Distress Description
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Provide situational telemetry, hazard spread, or physical impediments..."
+                  value={newDesc}
+                  onChange={(e) => setNewDesc(e.target.value)}
+                  className="w-full bg-[#050817] border border-white/10 rounded-xl px-3 py-2 text-white placeholder-[#5E6D84] focus:outline-none focus:border-[#63BDF5]/50 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-4 py-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newMedical}
+                    onChange={(e) => setNewMedical(e.target.checked)}
+                    className="rounded border-white/20 text-[#63BDF5] focus:ring-0"
+                  />
+                  <span className="text-[#F5F7FB]">Acute Medical Trauma</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newChildren}
+                    onChange={(e) => setNewChildren(e.target.checked)}
+                    className="rounded border-white/20 text-[#63BDF5] focus:ring-0"
+                  />
+                  <span className="text-[#F5F7FB]">Children / Elderly Present</span>
+                </label>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-white/[0.08]">
+                <button
+                  type="button"
+                  onClick={() => setCreateModalOpen(false)}
+                  className="pill-button-secondary text-xs py-2 px-4"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="pill-button-primary text-xs py-2 px-5"
+                >
+                  Transmit & Prioritize SOS
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

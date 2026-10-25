@@ -1,25 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { HeaderBand } from '../components/layout/HeaderBand';
 import { useAuth } from '../context/AuthContext';
-import { useDisaster } from '../context/DisasterContext';
+import { HeaderBand } from '../components/layout/HeaderBand';
 import { api } from '../services/api';
-import { 
-  Users, 
-  HeartHandshake, 
-  CheckCircle2, 
-  ShieldCheck, 
-  PlusCircle, 
-  UserPlus, 
-  Award, 
-  Check, 
-  Send,
-  Home
-} from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { HeartHandshake, UserPlus, CheckCircle2, PlusCircle, Home } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export const NgoVolunteersPage: React.FC = () => {
   const { user } = useAuth();
-  const { shelters } = useDisaster();
   const navigate = useNavigate();
 
   const [ngos, setNgos] = useState<any[]>([]);
@@ -31,7 +18,7 @@ export const NgoVolunteersPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const isNgoOrVolunteer = user.role === 'ngo' || user.role === 'volunteer';
+  const isNgoOrVolunteer = user?.role === 'ngo' || user?.role === 'volunteer';
 
   const fetchData = async () => {
     try {
@@ -49,37 +36,32 @@ export const NgoVolunteersPage: React.FC = () => {
 
   const handleEnrollVolunteer = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!fullName || !phone) return;
     setIsSubmitting(true);
     try {
-      await fetch('/api/volunteers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          full_name: fullName,
-          phone,
-          skills: selectedSkills
-        })
+      await api.registerVolunteer({
+        full_name: fullName,
+        phone,
+        skills: selectedSkills,
+        assigned_ngo_id: ngos[0]?.id
       });
-      await fetchData();
+      setNotice(`Volunteer "${fullName}" registered and added to active humanitarian registry!`);
       setEnrollModalOpen(false);
       setFullName('');
       setPhone('');
-      setNotice('Volunteer successfully registered to DisasterOS Humanitarian Corps!');
+      await fetchData();
       setTimeout(() => setNotice(null), 4000);
     } catch (err: any) {
-      alert(`Enrollment failed: ${err.message}`);
+      alert(`Registration failed: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleAssignTask = async (volId: string, currentTask: string | null) => {
-    const nextTask = currentTask ? null : 'Shelter Care & Food Rations Distribution';
+  const handleAssignTask = async (volunteerId: string, currentTask: string | null) => {
+    const newTask = currentTask ? null : 'Distribute Emergency Rations & Water at Marina Shelter';
     try {
-      await api.updateVolunteer(volId, {
-        assigned_task: nextTask,
-        availability_status: nextTask ? 'deployed' : 'available'
-      });
+      await api.assignVolunteerTask(volunteerId, newTask);
       await fetchData();
     } catch (err: any) {
       alert(`Task assignment failed: ${err.message}`);
@@ -87,7 +69,7 @@ export const NgoVolunteersPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 bg-slate-50 flex flex-col pb-12">
+    <div className="flex-1 bg-[#050817] text-[#F5F7FB] flex flex-col pb-16">
       <HeaderBand
         breadcrumbs={[
           { label: 'Home', path: '/' },
@@ -102,20 +84,20 @@ export const NgoVolunteersPage: React.FC = () => {
 
         {/* ROLE WORKSPACE: NGO / VOLUNTEER OPERATOR */}
         {isNgoOrVolunteer && (
-          <div className="card-soft bg-gradient-to-r from-purple-500/10 via-purple-500/5 to-white border-purple-200/80 p-5 shadow-sm space-y-4">
+          <div className="bg-[#0D162B] border border-purple-500/40 rounded-2xl p-5 shadow-xl space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-purple-600 text-white">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-purple-500/20 text-purple-400 border border-purple-500/40">
                     Civilian Relief Operations
                   </span>
-                  <span className="text-xs font-bold text-purple-900">Red Cross & Community Responders</span>
+                  <span className="text-xs font-bold text-purple-300">Red Cross & Community Responders</span>
                 </div>
-                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <HeartHandshake className="w-5 h-5 text-purple-600" />
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <HeartHandshake className="w-5 h-5 text-purple-400" />
                   Humanitarian Coordination Desk
                 </h2>
-                <p className="text-xs text-slate-600">
+                <p className="text-xs text-[#9AA6BA]">
                   {volunteers.length} registered specialists · {volunteers.filter(v => v.availability_status === 'available').length} ready for immediate shelter & aid deployment
                 </p>
               </div>
@@ -123,14 +105,14 @@ export const NgoVolunteersPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setEnrollModalOpen(true)}
-                  className="px-3.5 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-2xs flex items-center gap-1.5"
+                  className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md flex items-center gap-1.5 cursor-pointer"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   Register Specialist Volunteer
                 </button>
                 <button
-                  onClick={() => navigate('/shelters')}
-                  className="px-3.5 py-2 rounded-lg bg-white border border-purple-200 hover:bg-purple-50 text-purple-700 text-xs font-bold shadow-2xs flex items-center gap-1.5"
+                  onClick={() => navigate('/operator/shelters')}
+                  className="px-3.5 py-2 rounded-xl bg-[#0A1022] border border-purple-500/40 hover:bg-purple-500/20 text-purple-300 text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer"
                 >
                   <Home className="w-3.5 h-3.5" />
                   View Shelters
@@ -139,8 +121,8 @@ export const NgoVolunteersPage: React.FC = () => {
             </div>
 
             {notice && (
-              <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <div className="p-2.5 rounded-xl bg-[#55D6A7]/15 border border-[#55D6A7]/30 text-xs font-bold text-[#55D6A7] flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#55D6A7]" />
                 <span>{notice}</span>
               </div>
             )}
@@ -150,37 +132,37 @@ export const NgoVolunteersPage: React.FC = () => {
         {/* NGOs Section */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">
               Verified Humanitarian Aid Agencies ({ngos.length})
             </h3>
-            <span className="text-xs text-slate-400">Accredited Relief Partners</span>
+            <span className="text-xs text-[#55D6A7]">Accredited Relief Partners</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {ngos.map(ngo => (
-              <div key={ngo.id} className="card-soft p-5 bg-white border-slate-200 space-y-3">
+              <div key={ngo.id} className="bg-[#0D162B] border border-white/10 rounded-2xl p-5 space-y-3 shadow-md">
                 <div className="flex items-start justify-between">
-                  <h4 className="text-sm font-bold text-slate-900">{ngo.name}</h4>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <h4 className="text-sm font-bold text-white">{ngo.name}</h4>
+                  <span className="text-[10px] font-bold text-[#55D6A7] bg-[#55D6A7]/20 px-2 py-0.5 rounded-full border border-[#55D6A7]/30">
                     Verified
                   </span>
                 </div>
-                <p className="text-xs text-slate-500">Contact: {ngo.contact_person} ({ngo.phone})</p>
+                <p className="text-xs text-[#9AA6BA]">Contact: {ngo.contact_person} ({ngo.phone})</p>
                 <div className="flex flex-wrap gap-1">
                   {ngo.specialties?.map((s: string, idx: number) => (
-                    <span key={idx} className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-medium">
+                    <span key={idx} className="text-[10px] bg-white/10 text-white/80 px-2 py-0.5 rounded-md font-medium border border-white/5">
                       {s.replace('_', ' ')}
                     </span>
                   ))}
                 </div>
-                <div className="pt-2 border-t border-slate-100 text-xs text-purple-700 font-semibold flex items-center justify-between">
+                <div className="pt-2 border-t border-white/10 text-xs text-purple-400 font-semibold flex items-center justify-between">
                   <span>{ngo.available_units} Field Aid Units Ready</span>
                   <button
                     onClick={() => {
                       setNotice(`Aid coordination channel linked with ${ngo.name}!`);
                       setTimeout(() => setNotice(null), 3000);
                     }}
-                    className="text-[11px] text-blue-600 hover:underline"
+                    className="text-[11px] text-[#38bdf8] hover:underline cursor-pointer"
                   >
                     Coordinate Aid
                   </button>
@@ -193,12 +175,12 @@ export const NgoVolunteersPage: React.FC = () => {
         {/* Volunteers Section */}
         <div className="space-y-3 pt-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">
               Registered Specialist Volunteers ({volunteers.length})
             </h3>
             <button
               onClick={() => setEnrollModalOpen(true)}
-              className="text-xs text-blue-600 hover:underline font-semibold flex items-center gap-1"
+              className="text-xs text-[#38bdf8] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5" />
               Enroll Volunteer
@@ -207,41 +189,41 @@ export const NgoVolunteersPage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {volunteers.map(vol => (
-              <div key={vol.id} className="card-soft p-4 bg-white border-slate-200 space-y-2.5">
+              <div key={vol.id} className="bg-[#0D162B] border border-white/10 rounded-2xl p-4 space-y-2.5 shadow-md">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-900">{vol.full_name}</h4>
+                  <h4 className="text-xs font-bold text-white">{vol.full_name}</h4>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    vol.availability_status === 'available' ? 'bg-emerald-50 text-emerald-700' : 'bg-purple-50 text-purple-700'
+                    vol.availability_status === 'available' ? 'bg-[#55D6A7]/20 text-[#55D6A7] border border-[#55D6A7]/30' : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                   }`}>
                     {vol.availability_status}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500">Phone: {vol.phone}</p>
+                <p className="text-[11px] text-[#9AA6BA]">Phone: {vol.phone}</p>
                 <div className="flex flex-wrap gap-1">
                   {vol.skills?.map((sk: string, i: number) => (
-                    <span key={i} className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-medium">
+                    <span key={i} className="text-[10px] bg-[#38bdf8]/15 text-[#38bdf8] border border-[#38bdf8]/30 px-1.5 py-0.5 rounded font-medium">
                       {sk.replace('_', ' ')}
                     </span>
                   ))}
                 </div>
                 {vol.assigned_task ? (
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                    <span className="text-slate-600 truncate max-w-[150px] font-medium" title={vol.assigned_task}>
+                  <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px]">
+                    <span className="text-white/80 truncate max-w-[150px] font-medium" title={vol.assigned_task}>
                       {vol.assigned_task}
                     </span>
                     <button
                       onClick={() => handleAssignTask(vol.id, vol.assigned_task)}
-                      className="text-emerald-700 font-bold hover:underline shrink-0"
+                      className="text-[#55D6A7] font-bold hover:underline shrink-0 cursor-pointer"
                     >
                       Complete
                     </button>
                   </div>
                 ) : (
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                    <span className="text-slate-400 italic">No task assigned</span>
+                  <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px]">
+                    <span className="text-white/40 italic">No task assigned</span>
                     <button
                       onClick={() => handleAssignTask(vol.id, null)}
-                      className="text-purple-700 font-bold hover:underline"
+                      className="text-purple-400 font-bold hover:underline cursor-pointer"
                     >
                       Assign Task
                     </button>
@@ -256,42 +238,42 @@ export const NgoVolunteersPage: React.FC = () => {
 
       {/* Enroll Volunteer Modal */}
       {enrollModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 max-w-sm w-full shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-slate-900">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0D162B] rounded-2xl border border-white/15 p-6 max-w-sm w-full shadow-2xl space-y-4 text-white">
+            <h3 className="text-base font-bold text-white">
               Register Community Volunteer
             </h3>
 
             <form onSubmit={handleEnrollVolunteer} className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Full Name</label>
+                <label className="text-xs font-semibold text-white/80 block mb-1">Full Name</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Maria Gonzalez"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="input-field text-xs"
+                  className="w-full bg-[#0A1022] border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#38bdf8]"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Phone Number</label>
+                <label className="text-xs font-semibold text-white/80 block mb-1">Phone Number</label>
                 <input
                   type="tel"
                   required
                   placeholder="e.g. 555-0199"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="input-field text-xs"
+                  className="w-full bg-[#0A1022] border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#38bdf8]"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Primary Skill Domain</label>
+                <label className="text-xs font-semibold text-white/80 block mb-1">Primary Skill Domain</label>
                 <select
                   onChange={(e) => setSelectedSkills([e.target.value])}
-                  className="input-field text-xs"
+                  className="w-full bg-[#0A1022] border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#38bdf8]"
                 >
                   <option value="first_aid">Certified First Aid / CPR</option>
                   <option value="translation">Multilingual Translation</option>
@@ -301,18 +283,18 @@ export const NgoVolunteersPage: React.FC = () => {
                 </select>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setEnrollModalOpen(false)}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                  className="px-3 py-1.5 rounded-lg border border-white/15 text-xs font-semibold text-white/70 hover:bg-white/5 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold"
+                  className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? 'Registering...' : 'Register Specialist'}
                 </button>

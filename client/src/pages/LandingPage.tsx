@@ -1,497 +1,412 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  ShieldAlert, 
+  Globe, 
+  ChevronDown, 
   Radio, 
-  MapPin, 
+  Droplets, 
   Activity, 
-  Boxes, 
-  Sliders, 
-  ArrowRight, 
-  Users, 
-  HeartHandshake, 
-  Layers,
-  CheckCircle2,
-  AlertTriangle,
-  Bot,
-  Droplets,
-  Flame,
-  Wind,
-  Clock,
-  Sparkles,
-  LifeBuoy,
-  User
+  Flame, 
+  Wind, 
+  Boxes
 } from 'lucide-react';
-import { useDisaster } from '../context/DisasterContext';
-import { useAuth } from '../context/AuthContext';
+import { PhotorealEarth } from '../components/globe/PhotorealEarth';
 
-interface DisasterDemoScenario {
+interface StoryCard {
   id: string;
-  name: string;
-  icon: string;
-  badgeColor: string;
-  dataAnalyzed: string;
-  earlyWarning: string;
-  leadTime: string;
-  highRiskArea: string;
-  riskScore: number;
-  riskLevel: string;
-  fasterResponse: string;
-  shelterTarget: string;
-  safeCorridor: string;
+  tag: string;
+  tagColor: string;
+  badge: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  link: string;
 }
 
-const DEMO_SCENARIOS: Record<string, DisasterDemoScenario> = {
-  flood: {
+const DISASTER_SITUATIONS: StoryCard[] = [
+  {
     id: 'flood',
-    name: 'Flash Flood',
-    icon: '🌊',
-    badgeColor: 'border-blue-200 bg-blue-50 text-blue-800',
-    dataAnalyzed: 'IoT river gauges record 38.4 mm/h rainfall. Water depth standing at 3.8ft and rising at 2.4 in/hr.',
-    earlyWarning: 'Level-3 Flash Flood Advisory active. Peak inundation crest predicted in 38 minutes.',
-    leadTime: '~38 minutes to crest',
-    highRiskArea: 'Zone A - Marina Waterfront & Lower Mission Basin',
-    riskScore: 92,
-    riskLevel: 'Extreme',
-    fasterResponse: '3 Swiftwater rescue boat teams dispatched. Responders diverted across elevated viaduct.',
-    shelterTarget: 'St. Jude Community Center (120 beds open)',
-    safeCorridor: 'Van Ness Ave & Guerrero Elevated Corridor'
+    tag: 'PACIFIC BASIN · SAN FRANCISCO BAY',
+    tagColor: '#38bdf8',
+    badge: '🌊 ACTIVE INUNDATION · 4.2 FT',
+    title: 'The Inundated Basin',
+    description: 'Atmospheric river crests over coastal sea-wall embankment. Water standing at 4.2 feet with swiftwater rescue boat units active.',
+    imageUrl: '/disasters/flood.jpg',
+    link: '/command-center'
   },
-  earthquake: {
+  {
+    id: 'wildfire',
+    tag: 'CASCADIA TIMBER CORRIDOR',
+    tagColor: '#fb923c',
+    badge: '🔥 TIER-1 FIRESTORM · 290 AQI',
+    title: 'The Diablo Firestorm',
+    description: 'High-velocity 45 km/h gusts driving industrial solvent fire buffer toward residential perimeter. Ambient AQI reading 290.',
+    imageUrl: '/disasters/wildfire.jpg',
+    link: '/command-center'
+  },
+  {
     id: 'earthquake',
-    name: 'Earthquake',
-    icon: '🌋',
-    badgeColor: 'border-amber-200 bg-amber-50 text-amber-800',
-    dataAnalyzed: 'USGS Realtime Stream records 5.4M seismic rupture 14km NW. 4 aftershocks (2.8M - 3.6M) logged in 90 mins.',
-    earlyWarning: 'Liquefaction advisory active. High probability of secondary masonry facade collapse.',
-    leadTime: '~15 min aftershock advisory',
-    highRiskArea: 'Zone B - Fault Fracture & Unreinforced Masonry District',
-    riskScore: 84,
-    riskLevel: 'High',
-    fasterResponse: 'USAR Acoustic Search & Rescue Taskforce Alpha deployed with hydraulic jaws.',
-    shelterTarget: 'Lincoln High Gymnasium (85 cots open, green-tagged)',
-    safeCorridor: 'Civic Center Open Parkway (Avoid narrow brick alleys)'
-  },
-  fire: {
-    id: 'fire',
-    name: 'Wildfire & Chemical Fire',
-    icon: '🔥',
-    badgeColor: 'border-rose-200 bg-rose-50 text-rose-800',
-    dataAnalyzed: 'MODIS thermal satellites detect active industrial solvent fire expanding NE at 12 km/h propelled by 45 km/h winds.',
-    earlyWarning: 'Toxic chemical smoke plume spreading toward residential sectors. Ambient AQI 280 (Hazardous).',
-    leadTime: '~45 min evacuation buffer',
-    highRiskArea: 'Zone C - Hillside Timber Belt & Chemical Buffer',
-    riskScore: 79,
-    riskLevel: 'Severe',
-    fasterResponse: 'Hazmat Suppression Units 1 & 2 deployed with retardant foam buffer.',
-    shelterTarget: 'North Community Center (64 filtered cots open)',
-    safeCorridor: 'Westward toward Coastal Station (Perpendicular to wind)'
-  },
-  weather: {
-    id: 'weather',
-    name: 'Extreme Weather & Gale',
-    icon: '🌪️',
-    badgeColor: 'border-purple-200 bg-purple-50 text-purple-800',
-    dataAnalyzed: 'Doppler atmospheric river radar registers 84 km/h sustained winds with 108 km/h gale gusts. Barometer dropping to 982 hPa.',
-    earlyWarning: 'Severe Gale & Structural Debris warning. Risk of coastal transmission line failures.',
-    leadTime: '~25 min severe gust arrival',
-    highRiskArea: 'Coastal Sector Grid & Exposed Construction Corridors',
-    riskScore: 89,
-    riskLevel: 'Critical',
-    fasterResponse: '14 emergency backup generators staged at regional trauma hospitals.',
-    shelterTarget: 'Regional Staging Sanctuary (240 beds open)',
-    safeCorridor: 'Inner Ring Arterials (Avoid coastal bridges)'
+    tag: 'SUBDUCTION FAULT SECTOR',
+    tagColor: '#f43f5e',
+    badge: '⚡ 7.2 Mw SEISMIC RUPTURE',
+    title: 'San Andreas Rupture',
+    description: '7.2M seismic event causing masonry facade collapse and severed municipal gas main. USAR acoustic search teams active.',
+    imageUrl: '/disasters/earthquake.jpg',
+    link: '/command-center'
   }
-};
+];
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { setRole } = useAuth();
-  const { disaster, incidents, rescueTeams, hospitals } = useDisaster();
-  const [selectedDisasterKey, setSelectedDisasterKey] = useState<string>('flood');
-  const activeScenario = DEMO_SCENARIOS[selectedDisasterKey];
+  const [activeDomain, setActiveDomain] = useState<'atmosphere' | 'hydrosphere' | 'geosphere' | 'biosphere' | 'infrastructure'>('atmosphere');
+  const [hoveredStripe, setHoveredStripe] = useState<{ year: number; risk: number; label: string } | null>({
+    year: 2026,
+    risk: 94,
+    label: 'Critical Multi-Hazard Response Index'
+  });
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex flex-col">
+    <div className="flex-1 flex flex-col bg-[#05070d] text-white selection:bg-[#38bdf8] selection:text-[#020617]">
       
-      {/* Hero Section */}
-      <section className="relative pt-10 pb-12 sm:pt-14 sm:pb-16 border-b border-slate-200/80 bg-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
-          
-          {/* Eyebrow */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded border border-blue-200 bg-blue-50/70 text-blue-800 text-[11px] font-mono tracking-wider uppercase mb-4 animate-slide-down">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-600 pulse-radar" />
-            <span>AI DISASTER ASSISTANT · HACKATHON WINNER DEMO</span>
-          </div>
+      {/* 1. HERO SECTION (Exact Terra visual style, layout & 3D Earth) */}
+      <section className="relative min-h-[100svh] w-full overflow-hidden flex flex-col justify-between pt-24 sm:pt-28 lg:pt-32 pb-8 sm:pb-10">
+        
+        {/* Radial glow spotlight behind Earth at 64% 58% */}
+        <div className="pointer-events-none absolute inset-0 [background:radial-gradient(60vmin_60vmin_at_64%_58%,rgba(56,189,248,0.12),transparent_70%)]" />
 
-          {/* Core Problem Statement Headline */}
-          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-slate-900 max-w-3xl mx-auto leading-tight font-sans animate-slide-up">
-            AI Disaster Assistant
-          </h1>
+        {/* Photoreal Three.js Earth with day/night/specular blend & 23.5° axial tilt */}
+        <PhotorealEarth />
 
-          {/* Plain-Language Subtitle */}
-          <p className="mt-3 text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed font-normal animate-slide-up">
-            During disasters like <strong>floods, earthquakes, fires, and extreme weather</strong>, people lack timely and location-specific information. 
-            DisasterOS provides two distinct, purpose-built workspaces: one for <strong>Citizens in danger</strong> and one for <strong>Emergency Operators & Authorities</strong>.
-          </p>
+        {/* Atmospheric Gradients */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-[#05070d]/80 via-[#05070d]/20 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[52%] bg-gradient-to-t from-[#05070d] via-[#05070d]/60 to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-[#05070d]/60 to-transparent" />
 
-          {/* TWO DISTINCT WORKSPACES: CITIZEN VS OPERATOR */}
-          <div className="mt-8 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 text-left animate-slide-up">
+        {/* Text Content Container: Safe top clearance guarantees zero clash with Navbar & Logo */}
+        <div className="relative z-10 container-page w-full my-auto py-4">
+          <div className="max-w-[32rem] sm:max-w-xl lg:max-w-[42rem]">
             
-            {/* Citizen Safety Portal Card */}
-            <div className="relative p-5 rounded-2xl border-2 border-emerald-300 bg-gradient-to-b from-emerald-50/70 to-white shadow-xs hover:shadow-md transition-all group flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-2xs">
-                    <span>👤</span>
-                    <span>CITIZEN PORTAL</span>
-                  </span>
-                  <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">
-                    For Evacuees & Public
-                  </span>
-                </div>
+            {/* DisasterOS Headline with exact 4-line typography rhythm */}
+            <h1 className="font-display text-4xl sm:text-6xl lg:text-[70px] xl:text-[78px] font-black leading-[1.05] tracking-tight text-white">
+              Disasters move<br />
+              fast.<br />
+              <span className="text-[#38bdf8]">
+                Response must<br />
+                move smarter.
+              </span>
+            </h1>
 
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
-                    Citizen Public Safety Portal
-                  </h3>
-                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                    Need immediate emergency rescue, live responder ETA, or safe refuge?
-                  </p>
-                </div>
+            {/* DisasterOS Supporting Copy */}
+            <p className="mt-5 sm:mt-6 max-w-md text-sm sm:text-base lg:text-lg font-normal leading-relaxed text-white/70">
+              An intelligent disaster-response platform connecting hazard awareness, emergency prioritization and critical resources in one operational view.
+            </p>
 
-                <ul className="text-xs space-y-2 text-slate-700 pt-1">
-                  <li className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
-                    <span><strong>1-Tap GPS Distress SOS:</strong> Instant location reporting to 911/EOC</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                    <span><strong>Live Rescuer Tracking:</strong> Real-time ETA of dispatched rescue team</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
-                    <span><strong>Shelters & Evacuation Routes:</strong> Find food, potable water & beds</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 shrink-0" />
-                    <span><strong>AI Safety Assistant:</strong> Step-by-step guidance during crisis</span>
-                  </li>
-                </ul>
-              </div>
+            {/* DisasterOS Primary & Secondary Actions */}
+            <div className="mt-7 sm:mt-9 flex flex-wrap items-center gap-3.5">
+              <Link to="/map" className="btn-primary text-sm sm:text-base">
+                <Globe className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-[#020617] shrink-0" />
+                <span className="shrink-0 whitespace-nowrap">Explore Live Map</span>
+              </Link>
 
-              <div className="pt-4 mt-4 border-t border-emerald-100">
-                <button
-                  onClick={() => {
-                    setRole('citizen');
-                    navigate('/sos');
-                  }}
-                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all group-hover:scale-[1.01]"
-                >
-                  <span>Launch Citizen Safety Portal 👤</span>
-                  <ArrowRight className="w-4 h-4 text-emerald-200" />
-                </button>
-              </div>
-            </div>
-
-            {/* Operator Command Console Card */}
-            <div className="relative p-5 rounded-2xl border-2 border-slate-700 bg-gradient-to-b from-slate-900 to-slate-950 text-white shadow-xs hover:shadow-md transition-all group flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-400 text-slate-950 shadow-2xs">
-                    <span>🛡️</span>
-                    <span>OPERATOR CONSOLE</span>
-                  </span>
-                  <span className="text-[11px] font-mono text-amber-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
-                    For EOC & Dispatchers
-                  </span>
-                </div>
-
-                <div>
-                  <h3 className="text-base font-bold text-white group-hover:text-amber-300 transition-colors">
-                    Operator Command Console
-                  </h3>
-                  <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                    Managing citywide disaster operations, triage queues, and multi-agency units?
-                  </p>
-                </div>
-
-                <ul className="text-xs space-y-2 text-slate-300 pt-1">
-                  <li className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
-                    <span><strong>Citizen SOS Triage Queue:</strong> AI severity score (0-100) & verification</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 shrink-0" />
-                    <span><strong>Multi-Agency Dispatch:</strong> Deploy Swiftwater boat teams & USAR squads</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 mt-1.5 shrink-0" />
-                    <span><strong>Hospital ICU & Beds:</strong> Real-time divert & capacity balancing</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                    <span><strong>Broadcast Emergency Sirens:</strong> Trigger alerts across all risk zones</span>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="pt-4 mt-4 border-t border-slate-800">
-                <button
-                  onClick={() => {
-                    setRole('authority');
-                    navigate('/command-center');
-                  }}
-                  className="w-full py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all group-hover:scale-[1.01]"
-                >
-                  <span>Launch Operator Console 🛡️</span>
-                  <ArrowRight className="w-4 h-4 text-slate-950" />
-                </button>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Quick Metrics Bar */}
-          <div className="mt-8 max-w-2xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-2 text-center font-mono text-xs animate-slide-up">
-            <div className="p-2 rounded bg-slate-50 border border-slate-200">
-              <span className="text-[10px] text-slate-400 uppercase block">AI Triage Speed</span>
-              <strong className="text-slate-900 font-bold text-sm">0.4s</strong>
-            </div>
-            <div className="p-2 rounded bg-slate-50 border border-slate-200">
-              <span className="text-[10px] text-slate-400 uppercase block">Early Warning Lead</span>
-              <strong className="text-blue-700 font-bold text-sm">38 mins</strong>
-            </div>
-            <div className="p-2 rounded bg-slate-50 border border-slate-200">
-              <span className="text-[10px] text-slate-400 uppercase block">Safe Route Buffer</span>
-              <strong className="text-emerald-700 font-bold text-sm">100%</strong>
-            </div>
-            <div className="p-2 rounded bg-slate-50 border border-slate-200">
-              <span className="text-[10px] text-slate-400 uppercase block">Dispatch Reduction</span>
-              <strong className="text-purple-700 font-bold text-sm">&lt; 4 mins</strong>
+              <Link to="/command-center" className="btn-ghost text-sm sm:text-base">
+                <span className="shrink-0 whitespace-nowrap">Open Command Center</span>
+              </Link>
             </div>
           </div>
+        </div>
 
+        {/* Downward Chevron Scroll Indicator */}
+        <div className="relative z-10 flex justify-center pt-2">
+          <a 
+            href="#crises" 
+            aria-label="Scroll to begin" 
+            className="group inline-flex items-center justify-center p-2 text-white/40 transition-colors hover:text-white/80"
+          >
+            <ChevronDown className="w-6 h-6 animate-bounce shrink-0" />
+          </a>
         </div>
       </section>
 
-      {/* Interactive 1-Click Disaster Demo Simulator (The Hackathon Showcase) */}
-      <section className="py-12 bg-white border-b border-slate-200/80">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
+      {/* 2. FRONTLINES SECTION: "Where it's happening now" */}
+      <section id="crises" className="relative py-24 sm:py-32 bg-[#05070d]">
+        <div className="container-page">
+          <p className="eyebrow">Frontlines</p>
           
-          <div className="text-center max-w-xl mx-auto">
-            <div className="inline-flex items-center gap-1.5 text-[10.5px] font-mono uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 mb-1.5 font-bold">
-              <Sparkles className="w-3 h-3 text-blue-600" />
-              <span>Interactive Judge Demonstration</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-              Test the AI Assistant in 1 Click
+          <div className="mt-2 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+            <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-white">
+              Where it's happening now
             </h2>
-            <p className="text-xs text-slate-500 mt-1">
-              Select any disaster below to see how the system fulfills all 4 parts of the problem statement in real time.
-            </p>
+            <Link 
+              to="/incidents" 
+              className="group inline-flex items-center gap-1.5 text-sm font-semibold text-[#7dd3fc] transition-colors hover:text-white"
+            >
+              All operational incidents &rarr;
+            </Link>
           </div>
 
-          {/* 4 Disaster Modality Selector Tabs */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            {[
-              { key: 'flood', label: 'Flash Floods', icon: '🌊', desc: 'Rising water & submerged roads' },
-              { key: 'earthquake', label: 'Earthquakes', icon: '🌋', desc: 'Seismic tremors & collapse risk' },
-              { key: 'fire', label: 'Fires & Smoke', icon: '🔥', desc: 'Thermal spread & toxic AQI' },
-              { key: 'weather', label: 'Extreme Weather', icon: '🌪️', desc: 'Gale winds & grid outages' }
-            ].map(d => (
-              <button
-                key={d.key}
-                onClick={() => setSelectedDisasterKey(d.key)}
-                className={`p-3 rounded border text-left transition-all ${
-                  selectedDisasterKey === d.key
-                    ? 'border-blue-600 bg-blue-50/70 shadow-xs'
-                    : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-slate-300'
-                }`}
+          {/* 3 Tall Rounded Disaster Situations Cards with Real Natural Disaster Photography */}
+          <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {DISASTER_SITUATIONS.map(card => (
+              <div
+                key={card.id}
+                onClick={() => navigate(card.link)}
+                className="group relative h-[480px] rounded-3xl p-7 flex flex-col justify-between overflow-hidden border border-white/[0.12] hover:border-[#38bdf8]/60 transition-all duration-500 cursor-pointer shadow-2xl bg-[#0A1022]"
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{d.icon}</span>
-                  <span className="font-bold text-xs text-slate-900">{d.label}</span>
+                {/* Natural Disaster Photography Background with Zoom on Hover */}
+                <img
+                  src={card.imageUrl}
+                  alt={card.title}
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                />
+
+                {/* Dark Vignette & Atmospheric Gradients to Guarantee High-Contrast Typography */}
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#05070d] via-[#05070d]/65 to-[#05070d]/25" />
+                <div className="pointer-events-none absolute inset-0 bg-radial-at-c from-transparent via-transparent to-[#05070d]/70" />
+
+                {/* Top Badge: Live Sensor/Hazard Telemetry */}
+                <div className="relative z-10 flex items-center justify-between">
+                  <span 
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] font-mono font-bold tracking-wider uppercase bg-[#05070d]/85 backdrop-blur-md border border-white/15 text-white shadow-lg"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full animate-ping shrink-0" style={{ backgroundColor: card.tagColor }} />
+                    <span className="shrink-0">{card.badge}</span>
+                  </span>
                 </div>
-                <span className="text-[11px] text-slate-500 mt-1 block truncate font-mono">{d.desc}</span>
-              </button>
+
+                {/* Bottom Content Area */}
+                <div className="relative z-10 space-y-3">
+                  <p 
+                    className="text-xs font-semibold uppercase tracking-[0.2em]"
+                    style={{ color: card.tagColor }}
+                  >
+                    {card.tag}
+                  </p>
+                  <h3 className="text-2xl sm:text-3xl font-extrabold text-white group-hover:text-[#38bdf8] transition-colors leading-snug">
+                    {card.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-white/75">
+                    {card.description}
+                  </p>
+
+                  <div className="pt-2 flex items-center gap-1.5 text-xs font-semibold text-[#38bdf8] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <span>Inspect Situation Telemetry</span>
+                    <span className="transition-transform group-hover:translate-x-1">&rarr;</span>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
-
-          {/* The 4-Pillar Live Solution Output Box */}
-          <div className="rounded border border-slate-200 bg-slate-50/70 p-5 space-y-4">
-            
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{activeScenario.icon}</span>
-                <span className="font-bold text-sm text-slate-900">{activeScenario.name} Scenario Analysis</span>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${activeScenario.badgeColor}`}>
-                  {activeScenario.riskLevel} Risk ({activeScenario.riskScore}/100)
-                </span>
-              </div>
-              <span className="text-xs font-mono text-slate-500">
-                Lead Time: <strong className="text-slate-900">{activeScenario.leadTime}</strong>
-              </span>
-            </div>
-
-            {/* 4 Pillars Mapped 1:1 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-              
-              {/* Pillar 1: Analyze Data */}
-              <div className="p-3.5 rounded bg-white border border-slate-200 space-y-1">
-                <div className="flex items-center gap-1.5 font-mono text-[10.5px] uppercase text-blue-700 font-bold">
-                  <span>📊 1. Analyze Disaster Data</span>
-                </div>
-                <p className="text-slate-800 leading-relaxed text-xs">
-                  {activeScenario.dataAnalyzed}
-                </p>
-              </div>
-
-              {/* Pillar 2: Early Warning */}
-              <div className="p-3.5 rounded bg-white border border-slate-200 space-y-1">
-                <div className="flex items-center gap-1.5 font-mono text-[10.5px] uppercase text-amber-700 font-bold">
-                  <span>⚠️ 2. Provide Early Warning</span>
-                </div>
-                <p className="text-slate-800 leading-relaxed text-xs">
-                  {activeScenario.earlyWarning}
-                </p>
-              </div>
-
-              {/* Pillar 3: High-Risk Area */}
-              <div className="p-3.5 rounded bg-white border border-slate-200 space-y-1">
-                <div className="flex items-center gap-1.5 font-mono text-[10.5px] uppercase text-rose-700 font-bold">
-                  <span>🗺️ 3. Identify High-Risk Area</span>
-                </div>
-                <p className="text-slate-900 font-bold text-xs">
-                  {activeScenario.highRiskArea}
-                </p>
-                <p className="text-[11px] text-slate-500 font-mono">
-                  Safe Route: {activeScenario.safeCorridor}
-                </p>
-              </div>
-
-              {/* Pillar 4: Faster Emergency Response */}
-              <div className="p-3.5 rounded bg-white border border-slate-200 space-y-1">
-                <div className="flex items-center gap-1.5 font-mono text-[10.5px] uppercase text-emerald-700 font-bold">
-                  <span>⚡ 4. Support Faster Emergency Response</span>
-                </div>
-                <p className="text-slate-800 leading-relaxed text-xs">
-                  {activeScenario.fasterResponse}
-                </p>
-                <p className="text-[11px] text-emerald-700 font-semibold font-mono">
-                  Verified Shelter: {activeScenario.shelterTarget}
-                </p>
-              </div>
-
-            </div>
-
-            {/* Quick Demo Action Buttons */}
-            <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/80">
-              <span className="text-[11px] text-slate-500 font-mono">
-                AI Inference time: 0.38s · Sensor Telemetry: USGS / NOAA / City IoT
-              </span>
-
-              <div className="flex items-center gap-2">
-                <Link
-                  to="/ai-assistant"
-                  className="px-3.5 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs flex items-center gap-1 transition-colors"
-                >
-                  <Bot className="w-3.5 h-3.5" />
-                  <span>Ask AI Assistant About This &rarr;</span>
-                </Link>
-                <Link
-                  to="/sos"
-                  className="px-3.5 py-1.5 rounded bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs flex items-center gap-1 transition-colors"
-                >
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  <span>Test 1-Tap SOS &rarr;</span>
-                </Link>
-              </div>
-            </div>
-
-          </div>
-
         </div>
       </section>
 
-      {/* 3-Minute Presentation Guide (For Pitching & Explaining Easily) */}
-      <section className="py-12 bg-slate-50 border-b border-slate-200/80">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
+      {/* 3. IMPACT CALLOUT SECTION: "The crisis isn't fixed." */}
+      <section className="relative py-28 sm:py-36 bg-[#05070d] text-center border-t border-white/[0.05]">
+        <div className="container-page max-w-4xl space-y-6">
+          <h2 className="text-4xl sm:text-6xl font-black tracking-tight text-white">
+            The crisis isn't fixed.
+          </h2>
+          <p className="text-base sm:text-xl text-white/70 max-w-xl mx-auto leading-relaxed">
+            Every minute of coordination latency saved is a family protected, a levee fortified, and critical medical supply delivered. Start by seeing it clearly.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-3">
+            <Link to="/map" className="btn-primary text-base">
+              <Globe className="w-[18px] h-[18px] text-[#020617] shrink-0" />
+              <span className="shrink-0 whitespace-nowrap">Explore Live Map</span>
+            </Link>
+            <Link to="/command-center" className="btn-ghost text-base">
+              <span className="shrink-0 whitespace-nowrap">Open Command Center</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. THE EVIDENCE: "A decade of multi-hazard telemetry, in one image." */}
+      <section className="relative py-24 sm:py-32 bg-[#05070d] border-t border-white/[0.05]">
+        <div className="container-page space-y-12">
           
-          <div className="text-center max-w-xl mx-auto">
-            <h2 className="text-xl font-bold tracking-tight text-slate-900">
-              How DisasterOS Solves the Hackathon Problem
+          <div className="space-y-3">
+            <p className="eyebrow">The Telemetry</p>
+            <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-white">
+              A decade of multi-hazard telemetry, in one image.
             </h2>
-            <p className="text-xs text-slate-500 mt-1">
-              A connected end-to-end operational pipeline replacing delayed news with sub-second AI action.
-            </p>
+
+            {/* Interactive Telemetry Spectrum Bar */}
+            <div className="pt-8">
+              <div className="relative h-24 sm:h-28 w-full rounded-2xl overflow-hidden flex items-stretch border border-white/10 shadow-2xl bg-[#020617]">
+                {Array.from({ length: 65 }).map((_, idx) => {
+                  const year = 1965 + Math.round(idx * 0.95);
+                  let bg = '#1d4ed8';
+                  if (idx > 25 && idx <= 42) bg = '#0284c7';
+                  if (idx > 42 && idx <= 52) bg = '#f59e0b';
+                  if (idx > 52) bg = '#e11d48';
+
+                  const risk = Math.min(100, Math.floor(35 + (idx * 0.95) + Math.sin(idx) * 6));
+
+                  return (
+                    <div
+                      key={idx}
+                      onMouseEnter={() => setHoveredStripe({ 
+                        year, 
+                        risk, 
+                        label: risk > 85 ? 'Critical Emergency Cascade Phase' : risk > 65 ? 'Elevated Severe Exposure Phase' : 'Baseline Moderate Vulnerability'
+                      })}
+                      className="flex-1 transition-all duration-150 hover:scale-y-110 hover:opacity-100 opacity-85 cursor-pointer"
+                      style={{ backgroundColor: bg }}
+                    />
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center justify-between text-xs font-mono text-white/50 mt-4">
+                <span>1965 (Baseline)</span>
+                <span className="text-[#38bdf8] font-bold text-center">
+                  {hoveredStripe ? `Year ${hoveredStripe.year}: Multi-Factor Risk Index ${hoveredStripe.risk}/100 (${hoveredStripe.label})` : 'Hover the stripes to inspect telemetry records'}
+                </span>
+                <span>2026 (Operational Present)</span>
+              </div>
+
+              <p className="mt-4 text-xs text-white/50 max-w-xl">
+                Each stripe represents multi-sensor hazard telemetry across flood gauges, seismic accelerometers, and MODIS satellite fire anomalies. Blue to deep red reveals intensifying crisis exposure.
+              </p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
-            
-            <div className="bg-white p-4 rounded border border-slate-200 space-y-2">
-              <div className="w-7 h-7 rounded bg-blue-50 border border-blue-200 text-blue-700 font-bold flex items-center justify-center font-mono">
-                1
-              </div>
-              <h3 className="font-bold text-slate-900 text-sm">Analyze Data</h3>
-              <p className="text-slate-500 leading-relaxed text-xs">
-                Ingests live USGS seismic feeds, municipal flood gauges, and Doppler radar instead of waiting for delayed reports.
+          {/* 5-Domain System: "The response is an engine of five parts." */}
+          <div className="pt-12 border-t border-white/10 space-y-8">
+            <div className="max-w-2xl space-y-2">
+              <h3 className="text-3xl sm:text-4xl font-extrabold text-white">
+                The response is an engine of five parts.
+              </h3>
+              <p className="text-sm leading-relaxed text-white/70">
+                Atmosphere, hydrology, seismology, wildland boundaries and critical infrastructure are tightly interlocked. Intervene across any domain with instant geospatial telemetry.
               </p>
             </div>
 
-            <div className="bg-white p-4 rounded border border-slate-200 space-y-2">
-              <div className="w-7 h-7 rounded bg-amber-50 border border-amber-200 text-amber-700 font-bold flex items-center justify-center font-mono">
-                2
-              </div>
-              <h3 className="font-bold text-slate-900 text-sm">Early Warnings</h3>
-              <p className="text-slate-500 leading-relaxed text-xs">
-                Sends location-specific countdown alerts before crests or aftershocks strike, saving lives before disaster hits.
-              </p>
+            {/* Exact Pill Selector for 5 Domains */}
+            <div className="flex flex-wrap items-center gap-3">
+              {[
+                { id: 'atmosphere', label: 'Atmosphere', icon: Wind },
+                { id: 'hydrosphere', label: 'Hydrosphere', icon: Droplets },
+                { id: 'geosphere', label: 'Geosphere', icon: Activity },
+                { id: 'biosphere', label: 'Biosphere', icon: Flame },
+                { id: 'infrastructure', label: 'Infrastructure', icon: Boxes },
+              ].map(tab => {
+                const isActive = activeDomain === tab.id;
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveDomain(tab.id as any)}
+                    className={`px-5 py-2.5 rounded-full text-xs font-medium flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                      isActive
+                        ? 'bg-white/10 text-white border border-white/20 shadow-md'
+                        : 'bg-white/[0.03] text-white/60 border border-white/5 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 text-[#38bdf8] shrink-0" />
+                    <span className="shrink-0">{tab.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="bg-white p-4 rounded border border-slate-200 space-y-2">
-              <div className="w-7 h-7 rounded bg-rose-50 border border-rose-200 text-rose-700 font-bold flex items-center justify-center font-mono">
-                3
-              </div>
-              <h3 className="font-bold text-slate-900 text-sm">High-Risk Areas</h3>
-              <p className="text-slate-500 leading-relaxed text-xs">
-                Maps danger zones in red and guides citizens away from flooded underpasses to elevated shelters with open cots.
-              </p>
-            </div>
+            {/* Two-Column Card Display */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="terra-card p-8 flex flex-col justify-between space-y-8">
+                <div className="space-y-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#38bdf8]/15 border border-[#38bdf8]/30 flex items-center justify-center text-[#38bdf8] shrink-0">
+                    {activeDomain === 'atmosphere' && <Wind className="w-6 h-6 shrink-0" />}
+                    {activeDomain === 'hydrosphere' && <Droplets className="w-6 h-6 shrink-0" />}
+                    {activeDomain === 'geosphere' && <Activity className="w-6 h-6 shrink-0" />}
+                    {activeDomain === 'biosphere' && <Flame className="w-6 h-6 shrink-0" />}
+                    {activeDomain === 'infrastructure' && <Boxes className="w-6 h-6 shrink-0" />}
+                  </div>
+                  <p className="text-base leading-relaxed text-white/75">
+                    {activeDomain === 'atmosphere' && 'Doppler atmospheric river radar registers 84 km/h sustained gale winds and rapid barometric pressure drops.'}
+                    {activeDomain === 'hydrosphere' && 'IoT river level gauges report extreme inundation crest in Zone A, with baseline streams rising 3.8ft above embankment.'}
+                    {activeDomain === 'geosphere' && 'USGS seismic accelerometer stream records 7.2 Mw rupture with high liquefaction probability in coastal sediment districts.'}
+                    {activeDomain === 'biosphere' && 'MODIS thermal anomaly satellites track fast-moving wildfire buffer expanding toward residential sector boundaries.'}
+                    {activeDomain === 'infrastructure' && 'SCADA telemetry monitors municipal gas lines, hospital backup generators and evacuation corridor passability.'}
+                  </p>
+                </div>
 
-            <div className="bg-white p-4 rounded border border-slate-200 space-y-2">
-              <div className="w-7 h-7 rounded bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold flex items-center justify-center font-mono">
-                4
+                <div>
+                  <div className="text-5xl font-black text-[#38bdf8] font-telemetry tracking-tight">
+                    {activeDomain === 'atmosphere' && '984 hPa'}
+                    {activeDomain === 'hydrosphere' && '42.4 mm/h'}
+                    {activeDomain === 'geosphere' && '7.2 Mw'}
+                    {activeDomain === 'biosphere' && '290 AQI'}
+                    {activeDomain === 'infrastructure' && '99.4%'}
+                  </div>
+                  <span className="text-xs text-white/55 block mt-1">
+                    {activeDomain === 'atmosphere' && 'Barometric Pressure · Severe Gust Inflow'}
+                    {activeDomain === 'hydrosphere' && 'Precipitation Rate · Embankment Crest'}
+                    {activeDomain === 'geosphere' && 'Seismic Intensity · San Andreas Fracture'}
+                    {activeDomain === 'biosphere' && 'Ambient Particulate · Hazardous Buffer'}
+                    {activeDomain === 'infrastructure' && 'Grid Stability · Automated Isolation'}
+                  </span>
+                </div>
               </div>
-              <h3 className="font-bold text-slate-900 text-sm">Faster Response</h3>
-              <p className="text-slate-500 leading-relaxed text-xs">
-                One-tap SOS triggers automated triage and dispatches the nearest rescue boat or ambulance in under 4 minutes.
-              </p>
-            </div>
 
+              <div className="terra-card p-8 space-y-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/55">
+                  OPERATIONAL PROTOCOLS & MITIGATION
+                </p>
+                <p className="text-sm leading-relaxed text-white/75">
+                  Sub-second multi-sensor cross-validation triggers automated responder dispatch and life-safety evacuation corridors.
+                </p>
+
+                <div className="space-y-2.5 pt-2">
+                  {[
+                    activeDomain === 'atmosphere' 
+                      ? 'Pre-positioning mobile emergency diesel generators at Level-1 trauma hospitals'
+                      : activeDomain === 'hydrosphere'
+                      ? 'Dispatching 3 swiftwater rescue boat taskforces along elevated viaduct corridor'
+                      : activeDomain === 'geosphere'
+                      ? 'Deploying USAR acoustic listening taskforces with hydraulic shoring units'
+                      : activeDomain === 'biosphere'
+                      ? 'Establishing Class-B fluoropolymer foam perimeter buffer perpendicular to wind direction'
+                      : 'Isolating severed gas lines and dynamically re-routing ambulances across open highways',
+                    'Transparent rule-based priority scoring calculates 0-100 incident urgency ranking',
+                    'Zero-over-allocation warehouse reserve controls safeguard critical medical inventories'
+                  ].map((bullet, bIdx) => (
+                    <div key={bIdx} className="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-sm text-white/80">
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#38bdf8] mt-1.5" />
+                      <span>{bullet}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="mt-auto py-6 bg-white border-t border-slate-200 text-xs text-slate-500">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-900">DisasterOS</span>
-            <span>·</span>
-            <span>AI Disaster Assistant Platform</span>
+      {/* 5. FOOTER */}
+      <footer className="py-14 border-t border-white/10 bg-[#05070d] text-xs text-white/60">
+        <div className="container-page space-y-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <span className="text-base font-bold text-white">DisasterOS AI</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-6">
+              <Link to="/map" className="hover:text-white transition-colors">Live Map</Link>
+              <Link to="/incidents" className="hover:text-white transition-colors">Incidents</Link>
+              <Link to="/resources" className="hover:text-white transition-colors">Resources</Link>
+              <Link to="/shelters" className="hover:text-white transition-colors">Shelters</Link>
+              <Link to="/analytics" className="hover:text-white transition-colors">Analytics</Link>
+              <Link to="/command-center" className="text-[#38bdf8] hover:underline font-semibold">Command Center</Link>
+            </div>
           </div>
-          <div className="flex items-center gap-4 text-slate-600">
-            <Link to="/ai-assistant" className="hover:text-slate-900">AI Assistant</Link>
-            <Link to="/risk-analysis" className="hover:text-slate-900">Early Warnings</Link>
-            <Link to="/map" className="hover:text-slate-900">Tactical Map</Link>
-            <Link to="/sos" className="hover:text-slate-900">Citizen SOS</Link>
-            <Link to="/command-center" className="hover:text-slate-900">Command Center</Link>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/50">
+            <p>&copy; {new Date().getFullYear()} DisasterOS AI. See the risk. Coordinate the response.</p>
+            <p className="flex items-center gap-2">
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#38bdf8]" />
+              Every minute of coordination latency matters.
+            </p>
           </div>
         </div>
       </footer>
-
     </div>
   );
 };

@@ -277,7 +277,7 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
   ];
 
   return (
-    <div className="flex-1 bg-[#f8fafc] flex flex-col pb-28">
+    <div className="flex-1 bg-[#050817] text-[#F5F7FB] flex flex-col pb-28">
       {/* Header Band */}
       <HeaderBand
         breadcrumbs={[
@@ -307,12 +307,12 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
                   }}
                   className={`relative flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13.5px] font-medium text-left transition-colors ${
                     isActive
-                      ? 'bg-blue-50 text-blue-700 font-semibold'
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-white'
+                      ? 'bg-[#38bdf8]/15 text-[#38bdf8] font-semibold'
+                      : 'text-[#9AA6BA] hover:text-white hover:bg-white/5'
                   }`}
                 >
                   {isActive && (
-                    <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-blue-600 rounded-r" />
+                    <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#38bdf8] rounded-r" />
                   )}
                   <item.icon className="w-4 h-4 shrink-0" />
                   <span>{item.label}</span>
@@ -335,8 +335,8 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
                 }}
                 className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border ${
                   isActive
-                    ? 'bg-blue-50 border-blue-200 text-blue-700 font-semibold'
-                    : 'bg-white border-slate-200 text-slate-600'
+                    ? 'bg-[#38bdf8]/15 border-[#38bdf8]/40 text-[#38bdf8] font-semibold'
+                    : 'bg-[#0D162B] border-white/10 text-white/70'
                 }`}
               >
                 {item.label}
@@ -349,7 +349,7 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
         <div className="flex flex-col gap-7">
 
           {/* 1. Profile Card */}
-          <section id="profile" className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_1px_3px_rgba(15,23,42,0.06)]">
+          <section id="profile" className="rounded-2xl border border-white/10 bg-[#0D162B] p-6 shadow-xl text-white">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
               <div>
                 <h2 className="text-base font-bold text-slate-900 tracking-tight">Profile</h2>
@@ -473,17 +473,17 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
           </section>
 
           {/* 1.1 Supabase Cloud Database Integration Card */}
-          <section id="supabase" className="rounded-2xl border border-emerald-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_1px_3px_rgba(15,23,42,0.06)] space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-2">
+          <section id="supabase" className="rounded-2xl border border-emerald-500/30 bg-[#0D162B] p-6 shadow-xl space-y-5 text-white">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/10 pb-4 gap-2">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-[#55D6A7] flex items-center justify-center shrink-0">
                   <Database className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                  <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
                     Supabase Cloud Database & Auth
                   </h2>
-                  <p className="text-[13px] text-slate-500 mt-0.5">
+                  <p className="text-[13px] text-[#9AA6BA] mt-0.5">
                     Live PostgreSQL backend, Row Level Security (RLS), and Realtime subscription telemetry
                   </p>
                 </div>
@@ -493,21 +493,21 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
               <div className="flex items-center gap-2">
                 <span className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${
                   supabaseStatus?.connected
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    ? 'bg-emerald-500/20 text-[#55D6A7] border border-emerald-500/30'
                     : supabaseStatus?.configured
-                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                    : 'bg-slate-100 text-slate-600 border border-slate-200'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'bg-white/10 text-white/70 border border-white/10'
                 }`}>
-                  <span className={`w-2 h-2 rounded-full ${supabaseStatus?.connected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                  <span className={`w-2 h-2 rounded-full ${supabaseStatus?.connected ? 'bg-emerald-500 animate-pulse' : 'bg-white/40'}`} />
                   {supabaseStatus?.connected ? `Connected (${supabaseStatus.latencyMs}ms)` : 'Embedded Mode'}
                 </span>
               </div>
             </div>
 
             {/* Architectural Notice */}
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 text-xs text-slate-600 space-y-1.5">
-              <div className="flex items-center gap-1.5 font-bold text-slate-900">
-                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+            <div className="p-3.5 rounded-xl bg-[#0A1022] border border-white/10 text-xs text-white/80 space-y-1.5">
+              <div className="flex items-center gap-1.5 font-bold text-white">
+                <Sparkles className="w-3.5 h-3.5 text-[#38bdf8]" />
                 <span>Zero-Friction Hybrid Architecture</span>
               </div>
               <p>
@@ -603,18 +603,18 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
           </section>
 
           {/* 2. Form Behaviour Card */}
-          <section id="behaviour" className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_1px_3px_rgba(15,23,42,0.06)]">
-            <div className="border-b border-slate-100 pb-4 mb-4">
-              <h2 className="text-base font-bold text-slate-900 tracking-tight">Form behaviour</h2>
-              <p className="text-[13px] text-slate-500 mt-0.5">Control submission validation, deduplication, and citizen emergency ingress rules</p>
+          <section id="behaviour" className="rounded-2xl border border-white/10 bg-[#0D162B] p-6 shadow-xl text-white">
+            <div className="border-b border-white/10 pb-4 mb-4">
+              <h2 className="text-base font-bold text-white tracking-tight">Form behaviour</h2>
+              <p className="text-[13px] text-[#9AA6BA] mt-0.5">Control submission validation, deduplication, and citizen emergency ingress rules</p>
             </div>
 
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-white/5">
               {/* Smart spam filtering */}
               <div className="py-4 flex items-center justify-between gap-4">
                 <div>
-                  <h4 className="text-[13.5px] font-semibold text-slate-800">Smart spam filtering</h4>
-                  <p className="text-xs text-slate-500">Automatically flag duplicate or fraudulent distress signals</p>
+                  <h4 className="text-[13.5px] font-semibold text-white">Smart spam filtering</h4>
+                  <p className="text-xs text-[#9AA6BA]">Automatically flag duplicate or fraudulent distress signals</p>
                 </div>
                 <input
                   type="checkbox"
@@ -630,8 +630,8 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
               {/* Save partial responses */}
               <div className="py-4 flex items-center justify-between gap-4">
                 <div>
-                  <h4 className="text-[13.5px] font-semibold text-slate-800">Save partial responses</h4>
-                  <p className="text-xs text-slate-500">Capture in-progress citizen SOS even if connection drops abruptly</p>
+                  <h4 className="text-[13.5px] font-semibold text-white">Save partial responses</h4>
+                  <p className="text-xs text-[#9AA6BA]">Capture in-progress citizen SOS even if connection drops abruptly</p>
                 </div>
                 <input
                   type="checkbox"
@@ -647,8 +647,8 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
               {/* Custom thank-you redirect */}
               <div className="py-4 flex items-center justify-between gap-4">
                 <div>
-                  <h4 className="text-[13.5px] font-semibold text-slate-800">Custom thank-you redirect</h4>
-                  <p className="text-xs text-slate-500">Redirect users to public evacuation shelter directions after submission</p>
+                  <h4 className="text-[13.5px] font-semibold text-white">Custom thank-you redirect</h4>
+                  <p className="text-xs text-[#9AA6BA]">Redirect users to public evacuation shelter directions after submission</p>
                 </div>
                 <input
                   type="checkbox"
@@ -664,10 +664,10 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
               {/* Submission Limit Segmented Control */}
               <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h4 className="text-[13.5px] font-semibold text-slate-800">Submission limit</h4>
-                  <p className="text-xs text-slate-500">Cap max concurrent live SOS signals before auto-scaling queue</p>
+                  <h4 className="text-[13.5px] font-semibold text-white">Submission limit</h4>
+                  <p className="text-xs text-[#9AA6BA]">Cap max concurrent live SOS signals before auto-scaling queue</p>
                 </div>
-                <div className="inline-flex p-1 rounded-lg bg-slate-100 border border-slate-200/80 text-xs">
+                <div className="inline-flex p-1 rounded-xl bg-[#0A1022] border border-white/10 text-xs">
                   {(['None', '100', '500', 'Custom'] as const).map((opt) => (
                     <button
                       key={opt}
@@ -676,10 +676,10 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
                         setSubmissionLimit(opt);
                         setHasUnsavedChanges(true);
                       }}
-                      className={`px-3 py-1 rounded-md font-medium transition-all ${
+                      className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
                         submissionLimit === opt
-                          ? 'bg-white shadow-[0_1px_2px_rgba(15,23,42,0.1)] text-slate-900 font-bold'
-                          : 'text-slate-500 hover:text-slate-700'
+                          ? 'bg-[#38bdf8] text-[#020617] font-bold'
+                          : 'text-[#9AA6BA] hover:text-white'
                       }`}
                     >
                       {opt}
@@ -691,11 +691,11 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
           </section>
 
           {/* 3. Notifications Card */}
-          <section id="notifications" className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_1px_3px_rgba(15,23,42,0.06)]">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+          <section id="notifications" className="rounded-2xl border border-white/10 bg-[#0D162B] p-6 shadow-xl text-white">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
               <div>
-                <h2 className="text-base font-bold text-slate-900 tracking-tight">Notifications</h2>
-                <p className="text-[13px] text-slate-500 mt-0.5">Configure alerting channels, threshold summaries, and operational updates</p>
+                <h2 className="text-base font-bold text-white tracking-tight">Notifications</h2>
+                <p className="text-[13px] text-[#9AA6BA] mt-0.5">Configure alerting channels, threshold summaries, and operational updates</p>
               </div>
               <button
                 type="button"
@@ -802,10 +802,10 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
           </section>
 
           {/* 4. Response Delivery Card */}
-          <section id="delivery" className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_1px_3px_rgba(15,23,42,0.06)]">
-            <div className="border-b border-slate-100 pb-4 mb-4">
-              <h2 className="text-base font-bold text-slate-900 tracking-tight">Response delivery</h2>
-              <p className="text-[13px] text-slate-500 mt-0.5">Forward emergency data to external spreadsheet logs or municipal webhooks</p>
+          <section id="delivery" className="rounded-2xl border border-white/10 bg-[#0D162B] p-6 shadow-xl text-white">
+            <div className="border-b border-white/10 pb-4 mb-4">
+              <h2 className="text-base font-bold text-white tracking-tight">Response delivery</h2>
+              <p className="text-[13px] text-[#9AA6BA] mt-0.5">Forward emergency data to external spreadsheet logs or municipal webhooks</p>
             </div>
 
             {/* 2-up Destination Tiles */}
@@ -816,23 +816,23 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
                   setSelectedDestination('sheets');
                   setHasUnsavedChanges(true);
                 }}
-                className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
                   selectedDestination === 'sheets'
-                    ? 'border-blue-600 bg-blue-50/50'
-                    : 'border-slate-200 bg-white'
+                    ? 'border-[#38bdf8] bg-[#38bdf8]/15 text-white'
+                    : 'border-white/10 bg-[#0A1022] text-white/80'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-white shadow-2xs border border-slate-100 flex items-center justify-center text-blue-600">
+                  <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-[#38bdf8]">
                     <Table2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900">Google Sheets</h4>
-                    <p className="text-[11px] text-slate-500">Connected · 2 forms</p>
+                    <h4 className="text-xs font-bold text-white">Google Sheets</h4>
+                    <p className="text-[11px] text-[#9AA6BA]">Connected · 2 forms</p>
                   </div>
                 </div>
                 {selectedDestination === 'sheets' && (
-                  <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                  <CheckCircle2 className="w-4 h-4 text-[#38bdf8]" />
                 )}
               </div>
 
@@ -842,34 +842,34 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
                   setSelectedDestination('webhook');
                   setHasUnsavedChanges(true);
                 }}
-                className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
                   selectedDestination === 'webhook'
-                    ? 'border-blue-600 bg-blue-50/50'
-                    : 'border-slate-200 bg-white'
+                    ? 'border-[#38bdf8] bg-[#38bdf8]/15 text-white'
+                    : 'border-white/10 bg-[#0A1022] text-white/80'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500">
+                  <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center text-white/50">
                     <Webhook className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900">Webhook</h4>
-                    <p className="text-[11px] text-slate-500">Not connected</p>
+                    <h4 className="text-xs font-bold text-white">Webhook</h4>
+                    <p className="text-[11px] text-[#9AA6BA]">Not connected</p>
                   </div>
                 </div>
                 {selectedDestination === 'webhook' ? (
-                  <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                  <CheckCircle2 className="w-4 h-4 text-[#38bdf8]" />
                 ) : (
-                  <span className="text-xs font-semibold text-blue-600">Connect</span>
+                  <span className="text-xs font-semibold text-[#38bdf8]">Connect</span>
                 )}
               </div>
             </div>
 
             {/* Sub-group with Reply-to and Toggle */}
-            <div className="rounded-xl border border-slate-100 divide-y divide-slate-100">
+            <div className="rounded-xl border border-white/10 divide-y divide-white/5 bg-[#0A1022]">
               <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="sm:w-52 shrink-0">
-                  <label className="text-[13px] font-semibold text-slate-800 block">Reply-to address</label>
+                  <label className="text-[13px] font-semibold text-white block">Reply-to address</label>
                 </div>
                 <div className="w-full sm:max-w-md">
                   <input
@@ -879,15 +879,15 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
                       setReplyTo(e.target.value);
                       setHasUnsavedChanges(true);
                     }}
-                    className="input-field text-xs"
+                    className="w-full bg-[#0D162B] border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#38bdf8]"
                   />
                 </div>
               </div>
 
               <div className="p-4 flex items-center justify-between gap-4">
                 <div>
-                  <h4 className="text-[13.5px] font-semibold text-slate-800">Attach file uploads</h4>
-                  <p className="text-xs text-slate-500">Include citizen uploaded photo evidence directly in notification payloads</p>
+                  <h4 className="text-[13.5px] font-semibold text-white">Attach file uploads</h4>
+                  <p className="text-xs text-[#9AA6BA]">Include citizen uploaded photo evidence directly in notification payloads</p>
                 </div>
                 <input
                   type="checkbox"
@@ -903,11 +903,11 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
           </section>
 
           {/* 5. Danger Zone Card */}
-          <section id="danger" className="rounded-2xl border border-rose-200 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_1px_3px_rgba(15,23,42,0.06)]">
+          <section id="danger" className="rounded-2xl border border-rose-500/30 bg-[#0D162B] p-6 shadow-xl text-white">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-[15px] font-bold text-rose-700 tracking-tight">Delete workspace</h2>
-                <p className="text-[13px] text-slate-500 mt-0.5">
+                <h2 className="text-[15px] font-bold text-rose-400 tracking-tight">Delete workspace</h2>
+                <p className="text-[13px] text-[#9AA6BA] mt-0.5">
                   Permanently erase all disaster incidents, dispatch logs, and facility capacity histories. This action is irreversible.
                 </p>
               </div>
@@ -918,7 +918,7 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
                     alert('Action aborted: Administrative safeguard active.');
                   }
                 }}
-                className="px-4 py-2 rounded-lg border border-rose-200 bg-white text-rose-600 hover:bg-rose-50 text-xs font-semibold flex items-center gap-1.5 shrink-0 shadow-2xs"
+                className="px-4 py-2 rounded-xl border border-rose-500/40 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-xs font-semibold flex items-center gap-1.5 shrink-0 shadow-md cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Delete
@@ -931,7 +931,7 @@ ALTER TABLE IF EXISTS public.incidents DISABLE ROW LEVEL SECURITY;`;
 
       {/* Sticky Bottom Save Bar */}
       {hasUnsavedChanges && (
-        <div className="fixed bottom-0 inset-x-0 z-40 bg-white/90 backdrop-blur-md border-t border-slate-200/80 shadow-[0_-4px_12px_rgba(15,23,42,0.05)] py-3">
+        <div className="fixed bottom-0 inset-x-0 z-40 bg-[#0A1022]/95 backdrop-blur-md border-t border-white/10 shadow-2xl py-3 text-white">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between">
             {/* Unsaved Dot Indicator */}
             <div className="flex items-center gap-2">

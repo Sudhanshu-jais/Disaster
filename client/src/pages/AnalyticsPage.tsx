@@ -1,182 +1,284 @@
-import React, { useState, useEffect } from 'react';
-import { HeaderBand } from '../components/layout/HeaderBand';
-import { api } from '../services/api';
+import React, { useMemo } from 'react';
+import { useDisaster } from '../context/DisasterContext';
 import { 
   ResponsiveContainer, 
-  LineChart, 
-  Line, 
   BarChart, 
   Bar, 
   XAxis, 
   YAxis, 
   Tooltip, 
-  CartesianGrid, 
   PieChart, 
   Pie, 
-  Cell 
+  Cell,
+  LineChart,
+  Line,
+  CartesianGrid
 } from 'recharts';
-import { BarChart3, TrendingUp, Clock, Users, ShieldCheck, Activity } from 'lucide-react';
+import { BarChart3, TrendingUp, Clock, Users, ShieldCheck, Activity, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const COLORS = ['#2563eb', '#dc2626', '#f59e0b', '#7c3aed', '#059669'];
+const SEVERITY_COLORS = {
+  critical: '#FF5D67',
+  high: '#FFB454',
+  medium: '#63BDF5',
+  low: '#55D6A7'
+};
+
+const CATEGORY_COLORS = ['#63BDF5', '#35D6E8', '#FFB454', '#FF5D67', '#A78BFA'];
 
 export const AnalyticsPage: React.FC = () => {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { incidents, rescueTeams, inventory, shelters, hospitals } = useDisaster();
 
-  useEffect(() => {
-    api.getAnalytics()
-      .then(res => setData(res))
-      .catch(e => console.warn(e))
-      .finally(() => setLoading(false));
-  }, []);
+  // 1. Calculate Incident Categories Distribution
+  const categoryData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    incidents.forEach(i => {
+      const type = (i.type || 'other').toUpperCase();
+      counts[type] = (counts[type] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [incidents]);
+
+  // 2. Calculate Severity Breakdown
+  const severityData = useMemo(() => {
+    const counts: Record<string, number> = { critical: 0, high: 0, medium: 0, low: 0 };
+    incidents.forEach(i => {
+      if (counts[i.severity] !== undefined) {
+        counts[i.severity]++;
+      } else {
+        counts[i.severity] = 1;
+      }
+    });
+    return Object.entries(counts).map(([name, count]) => ({
+      name: name.toUpperCase(),
+      count,
+      color: (SEVERITY_COLORS as any)[name] || '#63BDF5'
+    }));
+  }, [incidents]);
+
+  // 3. Calculate Status Progression
+  const statusData = useMemo(() => {
+    const counts: Record<string, number> = {
+      submitted: 0,
+      verified: 0,
+      assigned: 0,
+      in_progress: 0,
+      resolved: 0
+    };
+    incidents.forEach(i => {
+      if (counts[i.status] !== undefined) counts[i.status]++;
+    });
+    return [
+      { status: 'Submitted', count: counts.submitted },
+      { status: 'Verified', count: counts.verified },
+      { status: 'Assigned', count: counts.assigned },
+      { status: 'In Progress', count: counts.in_progress },
+      { status: 'Resolved', count: counts.resolved },
+    ];
+  }, [incidents]);
+
+  // 4. Resource Utilization Breakdown
+  const inventoryData = useMemo(() => {
+    return inventory.map(item => ({
+      name: item.category,
+      available: item.quantity_available,
+      reserved: item.quantity_reserved
+    }));
+  }, [inventory]);
+
+  const totalPeopleAffected = incidents.reduce((acc, i) => acc + (i.affected_count || 0), 0);
+  const criticalCount = incidents.filter(i => i.severity === 'critical').length;
+  const deployedTeams = rescueTeams.filter(t => t.status !== 'available').length;
+  const totalShelterPlaces = shelters.reduce((acc, s) => acc + (s.capacity - s.current_occupancy), 0);
 
   return (
-    <div className="flex-1 bg-slate-50 flex flex-col pb-12">
-      <HeaderBand
-        breadcrumbs={[
-          { label: 'Home', path: '/' },
-          { label: 'Intelligence' },
-          { label: 'Operational Analytics' }
-        ]}
-        title="Disaster Intelligence & Operations Analytics"
-        description="Empirical mission telemetry, response timelines, casualty extractions, and multi-agency resource utilization."
-        statusText="Operational Telemetry Calibrated"
-      />
+    <div className="flex-1 bg-[#050817] text-[#F5F7FB] flex flex-col pb-16">
+      
+      {/* Top Banner */}
+      <div className="bg-[#0A1022] border-b border-white/[0.08] px-4 py-4 sm:px-6">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-[#63BDF5] font-bold">
+                OPERATIONAL PERFORMANCE METRICS
+              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#55D6A7] animate-pulse" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+              Disaster Response Analytics & Resource Telemetry
+            </h1>
+          </div>
+
+          <button
+            onClick={() => navigate('/command-center')}
+            className="pill-button-secondary text-xs py-2 px-4 self-start sm:self-auto cursor-pointer shrink-0"
+          >
+            <span className="shrink-0 whitespace-nowrap">Command Center</span>
+            <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+          </button>
+        </div>
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full mt-6 space-y-6">
         
-        {/* KPI Row */}
-        {data?.kpis && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="card-soft p-4 bg-white">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase">Avg Response Time</span>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{data.kpis.average_response_minutes} min</p>
-              <span className="text-xs text-emerald-600 font-medium">Faster than benchmark</span>
-            </div>
-            <div className="card-soft p-4 bg-white">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase">Total Citizens Extricated</span>
-              <p className="text-2xl font-bold text-blue-600 mt-1">{data.kpis.total_rescued} people</p>
-              <span className="text-xs text-slate-400">Across 18 missions</span>
-            </div>
-            <div className="card-soft p-4 bg-white">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase">Active Responders Deployed</span>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{data.kpis.teams_deployed} units</p>
-              <span className="text-xs text-slate-400">Zone A & Zone B active</span>
-            </div>
-            <div className="card-soft p-4 bg-white">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase">Shelter Refuge Rate</span>
-              <p className="text-2xl font-bold text-emerald-600 mt-1">{data.kpis.shelter_spaces_free} open</p>
-              <span className="text-xs text-slate-400">Capacity buffer secure</span>
-            </div>
-          </div>
-        )}
-
-        {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* Incident Ingress vs Resolution Trend */}
-          <div className="card-soft p-5 bg-white border-slate-200">
-            <h3 className="text-sm font-bold text-slate-900 mb-1">
-              Incident Ingress vs Resolution Velocity
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">Cumulative distress signals compared with completed field missions</p>
-            
-            <div className="h-64 w-full">
-              {data?.recent_trend && (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data.recent_trend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="time" stroke="#94a3b8" fontSize={11} />
-                    <YAxis stroke="#94a3b8" fontSize={11} />
-                    <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px' }} />
-                    <Line type="monotone" dataKey="incidents" name="Reported SOS" stroke="#2563eb" strokeWidth={2.5} dot={{ r: 3 }} />
-                    <Line type="monotone" dataKey="resolved" name="Resolved" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+        {/* KPI Strip */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="terra-card p-5">
+            <span className="text-[10.5px] font-mono uppercase tracking-wider text-[#9AA6BA] block mb-1">Est. Population In Danger</span>
+            <div className="text-2xl sm:text-3xl font-black text-white font-telemetry">{totalPeopleAffected.toLocaleString()}</div>
+            <span className="text-xs text-[#63BDF5] mt-1 block">Across active incident sectors</span>
           </div>
 
-          {/* Incident Modality Breakdown */}
-          <div className="card-soft p-5 bg-white border-slate-200">
-            <h3 className="text-sm font-bold text-slate-900 mb-1">
-              Incident Modality Distribution
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">Volume classified by primary hazard category</p>
-
-            <div className="h-64 w-full flex items-center justify-center">
-              {data?.type_distribution && (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={data.type_distribution}
-                      dataKey="count"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      innerRadius={45}
-                      paddingAngle={3}
-                      label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {data.type_distribution.map((_: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px' }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+          <div className="terra-card p-5 border-[#FF5D67]/30 bg-gradient-to-b from-[#FF5D67]/10 to-transparent">
+            <span className="text-[10.5px] font-mono uppercase tracking-wider text-[#FF5D67] font-bold block mb-1">Critical Urgency Incidents</span>
+            <div className="text-2xl sm:text-3xl font-black text-[#FF5D67] font-telemetry">{criticalCount}</div>
+            <span className="text-xs text-[#FF5D67] mt-1 block">Life-threat priority &gt; 90/100</span>
           </div>
 
-          {/* Hospital Bed vs ICU Free Capacity */}
-          <div className="card-soft p-5 bg-white border-slate-200">
-            <h3 className="text-sm font-bold text-slate-900 mb-1">
-              Hospital Free Trauma & ICU Capacity
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">Surplus patient capacity across metropolitan receiving centers</p>
-
-            <div className="h-64 w-full">
-              {data?.hospital_capacity && (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.hospital_capacity}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
-                    <YAxis stroke="#94a3b8" fontSize={11} />
-                    <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px' }} />
-                    <Bar dataKey="available_beds" name="Standard Beds" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="icu_available" name="ICU Beds" fill="#dc2626" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+          <div className="terra-card p-5">
+            <span className="text-[10.5px] font-mono uppercase tracking-wider text-[#9AA6BA] block mb-1">Response Units In Action</span>
+            <div className="text-2xl sm:text-3xl font-black text-[#35D6E8] font-telemetry">{deployedTeams} / {rescueTeams.length}</div>
+            <span className="text-xs text-[#9AA6BA] mt-1 block">Active deployments logged</span>
           </div>
 
-          {/* Shelter Load Factor */}
-          <div className="card-soft p-5 bg-white border-slate-200">
-            <h3 className="text-sm font-bold text-slate-900 mb-1">
-              Evacuation Shelter Load Factor (%)
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">Percentage of designated capacity currently occupied</p>
-
-            <div className="h-64 w-full">
-              {data?.shelter_occupancy && (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.shelter_occupancy} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis type="number" domain={[0, 100]} stroke="#94a3b8" fontSize={11} />
-                    <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={90} />
-                    <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px' }} />
-                    <Bar dataKey="rate" name="Occupancy %" fill="#059669" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+          <div className="terra-card p-5">
+            <span className="text-[10.5px] font-mono uppercase tracking-wider text-[#9AA6BA] block mb-1">Open Shelter Capacity</span>
+            <div className="text-2xl sm:text-3xl font-black text-[#55D6A7] font-telemetry">{totalShelterPlaces}</div>
+            <span className="text-xs text-[#55D6A7] mt-1 block">Ready for emergency intake</span>
           </div>
-
         </div>
 
+        {/* Charts Row 1: Category Pie + Severity Bar */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Incident Hazard Categories */}
+          <div className="terra-card p-6 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                Incident Hazard Distribution
+              </h3>
+              <span className="text-xs font-mono text-[#9AA6BA]">{incidents.length} Total</span>
+            </div>
+
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={85}
+                    paddingAngle={4}
+                    dataKey="value"
+                  >
+                    {categoryData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} stroke="#050817" strokeWidth={2} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0D162B', borderColor: 'rgba(99,189,245,0.3)', borderRadius: '12px', color: '#fff', fontSize: '12px' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-mono">
+              {categoryData.map((entry, idx) => (
+                <div key={entry.name} className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[idx % CATEGORY_COLORS.length] }} />
+                  <span className="text-[#9AA6BA]">{entry.name}:</span>
+                  <span className="text-white font-bold">{entry.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Severity Breakdown */}
+          <div className="terra-card p-6 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                Severity Level Distribution
+              </h3>
+              <span className="text-xs font-mono text-[#FF5D67]">Multi-Factor Ranks</span>
+            </div>
+
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={severityData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                  <XAxis dataKey="name" stroke="#9AA6BA" fontSize={11} />
+                  <YAxis stroke="#9AA6BA" fontSize={11} allowDecimals={false} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0D162B', borderColor: 'rgba(99,189,245,0.3)', borderRadius: '12px', color: '#fff', fontSize: '12px' }}
+                  />
+                  <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                    {severityData.map((entry, index) => (
+                      <Cell key={`bar-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="text-xs text-[#9AA6BA] text-center">
+              Evaluated strictly by rule-based priority engine (Severity + Urgency + Entrapment count).
+            </p>
+          </div>
+        </div>
+
+        {/* Charts Row 2: Status Lifecycle Pipeline + Inventory Allocation */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Incident Status Progression */}
+          <div className="terra-card p-6 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                Incident Lifecycle Pipeline
+              </h3>
+              <span className="text-xs font-mono text-[#35D6E8]">Workflow Progression</span>
+            </div>
+
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={statusData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                  <XAxis type="number" stroke="#9AA6BA" fontSize={11} allowDecimals={false} />
+                  <YAxis type="category" dataKey="status" stroke="#9AA6BA" fontSize={11} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0D162B', borderColor: 'rgba(99,189,245,0.3)', borderRadius: '12px', color: '#fff', fontSize: '12px' }}
+                  />
+                  <Bar dataKey="count" fill="#63BDF5" radius={[0, 6, 6, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Staging Inventory Reserved vs Available */}
+          <div className="terra-card p-6 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                Staging Inventory Allocation
+              </h3>
+              <span className="text-xs font-mono text-[#55D6A7]">Available vs Reserved</span>
+            </div>
+
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={inventoryData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                  <XAxis dataKey="name" stroke="#9AA6BA" fontSize={11} />
+                  <YAxis stroke="#9AA6BA" fontSize={11} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0D162B', borderColor: 'rgba(99,189,245,0.3)', borderRadius: '12px', color: '#fff', fontSize: '12px' }}
+                  />
+                  <Bar dataKey="available" fill="#55D6A7" radius={[4, 4, 0, 0]} name="Available" />
+                  <Bar dataKey="reserved" fill="#FFB454" radius={[4, 4, 0, 0]} name="Reserved" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

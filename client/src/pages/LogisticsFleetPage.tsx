@@ -4,19 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { HeaderBand } from '../components/layout/HeaderBand';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { api } from '../services/api';
-import { 
-  Truck, 
-  Fuel, 
-  Users, 
-  ShieldAlert, 
-  CheckCircle2, 
-  Navigation, 
-  AlertTriangle, 
-  Wrench, 
-  Activity,
-  Layers,
-  RotateCcw
-} from 'lucide-react';
+import { Truck, Fuel, Users, Navigation } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const LogisticsFleetPage: React.FC = () => {
@@ -27,7 +15,7 @@ export const LogisticsFleetPage: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [updatingVehicleId, setUpdatingVehicleId] = useState<string | null>(null);
 
-  const isLogisticsOperator = user.role === 'logistics';
+  const isLogisticsOperator = user?.role === 'logistics';
 
   const filteredVehicles = vehicles.filter(v => {
     if (typeFilter === 'all') return true;
@@ -59,7 +47,7 @@ export const LogisticsFleetPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 bg-slate-50 flex flex-col pb-12">
+    <div className="flex-1 bg-[#050817] text-[#F5F7FB] flex flex-col pb-16">
       <HeaderBand
         breadcrumbs={[
           { label: 'Home', path: '/' },
@@ -72,30 +60,30 @@ export const LogisticsFleetPage: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full mt-6 space-y-6">
 
-        {/* ROLE WORKSPACE: FLEET LOGISTICS COMMANDER (Sgt. Tom Bradley) */}
+        {/* ROLE WORKSPACE: FLEET LOGISTICS COMMANDER */}
         {isLogisticsOperator && (
-          <div className="card-soft bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-white border-emerald-200/80 p-5 shadow-sm space-y-4">
+          <div className="bg-[#0D162B] border border-emerald-500/40 rounded-2xl p-5 shadow-xl space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-emerald-600 text-white">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
                     Fleet Command Console
                   </span>
-                  <span className="text-xs font-bold text-emerald-900">Sgt. Tom Bradley</span>
+                  <span className="text-xs font-bold text-emerald-300">Sgt. Tom Bradley</span>
                 </div>
-                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <Truck className="w-5 h-5 text-emerald-600" />
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Truck className="w-5 h-5 text-emerald-400" />
                   Transit & Heavy Transport Division
                 </h2>
-                <p className="text-xs text-slate-600">
-                  Managing <strong>{vehicles.length} tactical units</strong> · Ready: <strong>{vehicles.filter(v => v.status === 'available').length} Available</strong> · Active: <strong>{vehicles.filter(v => v.status === 'en_route' || v.status === 'on_mission').length} Deployed</strong>
+                <p className="text-xs text-[#9AA6BA]">
+                  Managing <strong className="text-white">{vehicles.length} tactical units</strong> · Ready: <strong className="text-[#55D6A7]">{vehicles.filter(v => v.status === 'available').length} Available</strong> · Active: <strong className="text-[#FFB454]">{vehicles.filter(v => v.status === 'en_route' || v.status === 'on_mission').length} Deployed</strong>
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => navigate('/routes')}
-                  className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs flex items-center gap-1.5"
+                  onClick={() => navigate('/operator/routes')}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md flex items-center gap-1.5 cursor-pointer"
                 >
                   <Navigation className="w-3.5 h-3.5" />
                   Road Clearance Corridors
@@ -107,45 +95,45 @@ export const LogisticsFleetPage: React.FC = () => {
 
         {/* Fleet KPI Summary */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="card-soft p-4 bg-white">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Total Registered Fleet</span>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{vehicles.length}</p>
-            <span className="text-xs text-slate-400">All terrain & emergency units</span>
+          <div className="bg-[#0D162B] border border-white/10 rounded-2xl p-4">
+            <span className="text-[11px] font-semibold text-[#9AA6BA] uppercase tracking-wide">Total Registered Fleet</span>
+            <p className="text-2xl font-black text-white mt-1">{vehicles.length}</p>
+            <span className="text-xs text-white/40">All terrain & emergency units</span>
           </div>
 
-          <div className="card-soft p-4 bg-white">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Available In Staging</span>
-            <p className="text-2xl font-bold text-emerald-600 mt-1">
+          <div className="bg-[#0D162B] border border-white/10 rounded-2xl p-4">
+            <span className="text-[11px] font-semibold text-[#9AA6BA] uppercase tracking-wide">Available In Staging</span>
+            <p className="text-2xl font-black text-[#55D6A7] mt-1">
               {vehicles.filter(v => v.status === 'available').length}
             </p>
-            <span className="text-xs text-slate-400">Ready for instant dispatch</span>
+            <span className="text-xs text-white/40">Ready for instant dispatch</span>
           </div>
 
-          <div className="card-soft p-4 bg-white">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Active On Missions</span>
-            <p className="text-2xl font-bold text-amber-600 mt-1">
+          <div className="bg-[#0D162B] border border-white/10 rounded-2xl p-4">
+            <span className="text-[11px] font-semibold text-[#9AA6BA] uppercase tracking-wide">Active On Missions</span>
+            <p className="text-2xl font-black text-[#FFB454] mt-1">
               {vehicles.filter(v => v.status === 'en_route' || v.status === 'on_mission').length}
             </p>
-            <span className="text-xs text-slate-400">On mission routes</span>
+            <span className="text-xs text-white/40">On mission routes</span>
           </div>
 
-          <div className="card-soft p-4 bg-white">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Average Fuel Level</span>
-            <p className="text-2xl font-bold text-blue-600 mt-1">
+          <div className="bg-[#0D162B] border border-white/10 rounded-2xl p-4">
+            <span className="text-[11px] font-semibold text-[#9AA6BA] uppercase tracking-wide">Average Fuel Level</span>
+            <p className="text-2xl font-black text-[#38bdf8] mt-1">
               {Math.round(vehicles.reduce((acc, v) => acc + (v.fuel_percent || 0), 0) / (vehicles.length || 1))}%
             </p>
-            <span className="text-xs text-slate-400">Readiness reserve index</span>
+            <span className="text-xs text-white/40">Readiness reserve index</span>
           </div>
         </div>
 
         {/* Filter bar */}
-        <div className="card-soft p-4 bg-white flex flex-wrap items-center justify-between gap-3">
+        <div className="bg-[#0D162B] border border-white/10 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-700">Filter Vehicle Type:</span>
+            <span className="text-xs font-bold text-[#9AA6BA]">Filter Vehicle Type:</span>
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="input-field text-xs w-auto py-1"
+              className="bg-[#0A1022] border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#38bdf8]"
             >
               <option value="all">All Vehicle Types</option>
               <option value="ambulance">Type III Ambulance</option>
@@ -155,51 +143,51 @@ export const LogisticsFleetPage: React.FC = () => {
               <option value="cargo_truck">Heavy Cargo Transport</option>
             </select>
           </div>
-          <span className="text-xs text-slate-500">
-            Showing <strong>{filteredVehicles.length}</strong> active vehicles
+          <span className="text-xs text-[#9AA6BA]">
+            Showing <strong className="text-white">{filteredVehicles.length}</strong> active vehicles
           </span>
         </div>
 
         {/* Vehicles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredVehicles.map(v => (
-            <div key={v.id} className="card-soft p-5 bg-white border-slate-200 space-y-3">
+            <div key={v.id} className="bg-[#0D162B] border border-white/10 hover:border-white/20 rounded-2xl p-5 space-y-3 transition-all">
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="font-mono text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                  <span className="font-mono text-[11px] font-bold text-[#38bdf8] bg-[#38bdf8]/15 px-2 py-0.5 rounded-md border border-[#38bdf8]/30">
                     {v.registration_number}
                   </span>
-                  <h3 className="text-sm font-bold text-slate-900 mt-1 capitalize">{v.type.replace('_', ' ')}</h3>
-                  <p className="text-xs text-slate-500">{v.make_model}</p>
+                  <h3 className="text-sm font-bold text-white mt-1 capitalize">{v.type.replace('_', ' ')}</h3>
+                  <p className="text-xs text-[#9AA6BA]">{v.make_model}</p>
                 </div>
                 <StatusBadge status={v.status} />
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+              <div className="grid grid-cols-2 gap-2 text-xs bg-[#0A1022] p-2.5 rounded-xl border border-white/5 text-white/80">
                 <div className="flex items-center gap-1.5">
-                  <Fuel className={`w-3.5 h-3.5 ${v.fuel_percent < 30 ? 'text-rose-500' : 'text-slate-400'}`} />
-                  <span>Fuel: <strong>{v.fuel_percent}%</strong></span>
+                  <Fuel className={`w-3.5 h-3.5 ${v.fuel_percent < 30 ? 'text-rose-500' : 'text-[#38bdf8]'}`} />
+                  <span>Fuel: <strong className="text-white">{v.fuel_percent}%</strong></span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Seats: <strong>{v.passenger_capacity}</strong></span>
+                  <Users className="w-3.5 h-3.5 text-[#55D6A7]" />
+                  <span>Seats: <strong className="text-white">{v.passenger_capacity}</strong></span>
                 </div>
               </div>
 
-              <div className="text-xs text-slate-500 pt-1 flex items-center justify-between">
-                <span>Driver: <strong className="text-slate-800">{v.driver_name}</strong></span>
-                <span>Payload: <strong>{v.capacity_payload_kg} kg</strong></span>
+              <div className="text-xs text-white/60 pt-1 flex items-center justify-between">
+                <span>Driver: <strong className="text-white">{v.driver_name}</strong></span>
+                <span>Payload: <strong className="text-white">{v.capacity_payload_kg} kg</strong></span>
               </div>
 
               {/* Status Update Controls */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1">
-                  <span className="text-slate-400 text-[11px]">Set:</span>
+                  <span className="text-[#9AA6BA] text-[11px]">Set:</span>
                   <select
                     value={v.status}
                     onChange={(e) => handleUpdateStatus(v.id, e.target.value)}
                     disabled={updatingVehicleId === v.id}
-                    className="text-[11px] font-semibold bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 text-slate-800"
+                    className="text-[11px] font-semibold bg-[#0A1022] border border-white/15 rounded px-2 py-0.5 text-white"
                   >
                     <option value="available">Available</option>
                     <option value="en_route">En Route</option>
@@ -212,8 +200,8 @@ export const LogisticsFleetPage: React.FC = () => {
                 <button
                   onClick={() => handleRefuel(v.id)}
                   disabled={updatingVehicleId === v.id || v.fuel_percent >= 95}
-                  className={`text-[11px] font-semibold flex items-center gap-1 ${
-                    v.fuel_percent < 95 ? 'text-blue-600 hover:underline' : 'text-slate-400 cursor-not-allowed'
+                  className={`text-[11px] font-semibold flex items-center gap-1 cursor-pointer ${
+                    v.fuel_percent < 95 ? 'text-[#38bdf8] hover:underline' : 'text-white/30 cursor-not-allowed'
                   }`}
                 >
                   <Fuel className="w-3 h-3" />

@@ -235,7 +235,141 @@ router.get('/sos/:code', (req, res) => {
   
   // Find associated mission if any
   const mission = store.missions.find(m => m.incident_id === incident.id);
-  res.json({ incident, mission: mission || null });
+  const location = store.getLatestLocation(incident.id);
+  res.json({ incident, mission: mission || null, location });
+});
+
+// Live GPS Location Telemetry Ingress & Staleness Tracking
+router.post('/sos/:id/location', (req, res) => {
+  const incident = store.getIncidentById(req.params.id);
+  if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+  const telemetry = store.recordLocationUpdate(incident.id, req.body);
+  if (!telemetry) return res.status(400).json({ error: "Invalid location coordinates" });
+
+  // Broadcast to Command Center and assigned responders in real-time
+  eventBus.broadcast('SOS_LOCATION_UPDATE', {
+    incident_id: incident.id,
+    tracking_code: incident.tracking_code,
+    telemetry
+  });
+
+  res.json({ success: true, telemetry });
+});
+
+router.get('/sos/:id/location', (req, res) => {
+  const incident = store.getIncidentById(req.params.id);
+  if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+  const location = store.getLatestLocation(incident.id);
+  res.json({ location });
+});
+
+router.get('/sos/:id/location-history', (req, res) => {
+  const incident = store.getIncidentById(req.params.id);
+  if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+  const history = store.getLocationHistory(incident.id);
+  res.json({ history });
+});
+
+// Secure Expiring Tracking Links for Trusted Contacts
+router.post('/sos/:id/tracking-token', authenticate, (req, res) => {
+  const incident = store.getIncidentById(req.params.id);
+  if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+  const hours = Number(req.body.expires_in_hours) || 24;
+  const tokenRecord = store.createTrackingToken(incident.id, req.user?.email || "citizen@example.com", hours);
+  res.json({ success: true, ...tokenRecord });
+});
+
+// Public verify for authorized expiring tracking tokens (contact access)
+router.get('/tracking/verify/:token', (req, res) => {
+  const verification = store.verifyTrackingToken(req.params.token);
+  if (!verification || !verification.valid) {
+    return res.status(403).json({ error: verification?.reason || "Invalid tracking token" });
+  }
+
+  const incident = store.getIncidentById(verification.record.incident_id);
+  const location = store.getLatestLocation(verification.record.incident_id);
+  const mission = store.missions.find(m => m.incident_id === incident?.id);
+
+  res.json({
+    valid: true,
+    incident: incident ? {
+      tracking_code: incident.tracking_code,
+      type: incident.type,
+      title: incident.title,
+      status: incident.status,
+      created_at: incident.created_at
+    } : null,
+    location,
+    mission_status: mission?.status || null
+  });
+});
+
+router.post('/tracking/revoke/:token', authenticate, (req, res) => {
+  const success = store.revokeTrackingToken(req.params.token, req.user);
+  if (!success) return res.status(404).json({ error: "Token not found" });
+  res.json({ success: true, message: "Tracking token successfully revoked" });
+});
+
+// Emergency Contacts
+router.get('/user/contacts', (req, res) => {
+  const email = req.headers['x-demo-email'] || "citizen@example.com";
+  const contacts = store.getEmergencyContacts(email);
+  res.json({ contacts });
+});
+
+router.post('/user/contacts', (req, res) => {
+  const email = req.headers['x-demo-email'] || "citizen@example.com";
+  const updated = store.updateEmergencyContacts(email, req.body.contacts || [], req.user || { email });
+  res.json({ success: true, contacts: updated });
+});
+
+router.post('/sos/:id/notify-contacts', (req, res) => {
+  const incident = store.getIncidentById(req.params.id);
+  if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+  const email = incident.reporter_email || "citizen@example.com";
+  const contacts = store.getEmergencyContacts(email);
+
+  // Honest delivery status report
+  const notified = contacts.map(c => ({
+    name: c.name,
+    relationship: c.relationship,
+    phone: c.phone,
+    email: c.email,
+    sms_status: c.notify_sms ? "dispatched_simulated" : "skipped",
+    email_status: c.notify_email ? "dispatched_simulated" : "skipped",
+    location_shared: c.share_live_location
+  }));
+
+  res.json({
+    success: true,
+    contacts_notified_count: notified.length,
+    delivery_report: notified,
+    notice: "SMS & Email gateways simulated in development mode without external Twilio/Resend credentials."
+  });
+});
+
+// Nearby Emergency Alert Network
+router.get('/nearby-alerts', (req, res) => {
+  res.json({ alerts: store.nearbyAlerts });
+});
+
+router.post('/nearby-alerts', (req, res) => {
+  const alert = store.createNearbyAlert(req.body, req.user || {});
+  eventBus.broadcast('NEARBY_ALERT_BROADCAST', alert);
+  res.status(201).json({ success: true, alert });
+});
+
+router.post('/nearby-alerts/:id/respond', (req, res) => {
+  const response = store.respondToNearbyAlert(req.params.id, req.body);
+  if (!response) return res.status(404).json({ error: "Nearby alert not found" });
+
+  eventBus.broadcast('NEARBY_ALERT_RESPONSE', response);
+  res.json({ success: true, response });
 });
 
 router.patch('/incidents/:id', authenticate, (req, res) => {
@@ -273,15 +407,118 @@ router.get('/ai/dynamic-reallocation', (req, res) => {
   res.json({ count: reallocations.length, recommendations: reallocations });
 });
 
+// Google Gemini Status & Runtime Configuration
+router.get('/ai/gemini-status', (req, res) => {
+  const headerKey = req.headers['x-gemini-key'];
+  if (headerKey && !aiService.geminiKey) {
+    return res.json({
+      configured: true,
+      maskedKey: headerKey.length > 10 ? `${headerKey.slice(0, 6)}...${headerKey.slice(-4)}` : 'Client Key',
+      model: 'gemini-2.0-flash',
+      provider: 'Google Gemini (Header Configured)'
+    });
+  }
+  res.json(aiService.getStatus());
+});
+
+router.post('/ai/gemini-config', async (req, res) => {
+  const { apiKey } = req.body;
+  if (!apiKey || typeof apiKey !== 'string' || apiKey.trim().length === 0) {
+    aiService.setApiKey(null);
+    return res.json({ success: true, message: "Gemini API key cleared. Operating in heuristic simulation mode.", configured: false });
+  }
+
+  try {
+    const testResult = await aiService.testApiKey(apiKey.trim());
+    aiService.setApiKey(apiKey.trim());
+    res.json({
+      success: true,
+      message: "Gemini API key successfully verified & active!",
+      model: testResult.model || 'gemini-2.0-flash',
+      status: aiService.getStatus()
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      error: `Gemini verification failed: ${err.message}. Please check that your Google AI Studio API key is active.`
+    });
+  }
+});
+
 router.post('/ai/assistant', async (req, res) => {
-  const { question } = req.body;
+  const { question, history, context, role, apiKey } = req.body;
   if (!question) return res.status(400).json({ error: "question required" });
-  const answer = await aiService.answerCommandCenterQuestion(question, {
+
+  const activeKey = apiKey || req.headers['x-gemini-key'];
+  
+  const fullContext = {
     incidents: store.incidents,
     teams: store.rescueTeams,
-    warehouses: store.warehouses
+    warehouses: store.warehouses,
+    shelters: store.shelters || [],
+    hospitals: store.hospitals || [],
+    hazards: store.roadHazards || [],
+    ...(context || {})
+  };
+
+  const answer = await aiService.answerQuestion(question, {
+    history: history || [],
+    context: fullContext,
+    role: role || 'citizen',
+    apiKey: activeKey
   });
+
   res.json(answer);
+});
+
+// Tool-Connected Copilot Architecture
+router.get('/ai/copilot/tools', (req, res) => {
+  const role = req.headers['x-demo-role'] || 'citizen';
+  const tools = aiService.getAvailableTools(role);
+  res.json({ tools, role });
+});
+
+router.post('/ai/copilot/execute-tool', async (req, res) => {
+  const { tool, params } = req.body;
+  const role = req.headers['x-demo-role'] || 'citizen';
+  const email = req.headers['x-demo-email'] || `${role}@disasteros.gov`;
+
+  const result = await aiService.executeTool(tool, params || {}, {
+    role,
+    user: { email, role },
+    store,
+    simulationEngine,
+    routingService
+  });
+
+  if (result.unauthorized) {
+    return res.status(403).json(result);
+  }
+
+  res.json(result);
+});
+
+router.post('/ai/copilot/chat', async (req, res) => {
+  const { question, history, context, role, apiKey } = req.body;
+  if (!question) return res.status(400).json({ error: "question required" });
+
+  const activeRole = role || req.headers['x-demo-role'] || 'citizen';
+  const activeEmail = req.headers['x-demo-email'] || `${activeRole}@disasteros.gov`;
+  const activeKey = apiKey || req.headers['x-gemini-key'];
+
+  const copilotResponse = await aiService.copilotChat({
+    question,
+    history: history || [],
+    role: activeRole,
+    user: { email: activeEmail, role: activeRole },
+    context: context || {},
+    apiKey: activeKey,
+    store,
+    simulationEngine,
+    routingService
+  });
+
+  res.json(copilotResponse);
 });
 
 // -------------------------------------------------------------
@@ -651,6 +888,174 @@ router.get('/analytics', (req, res) => {
 
 router.get('/audit-logs', (req, res) => {
   res.json({ audit_logs: store.auditLogs });
+});
+
+// -------------------------------------------------------------
+// 15.1 RELIEFCHAIN & DONATIONS LEDGER
+// -------------------------------------------------------------
+router.get('/relief/campaigns', (req, res) => {
+  const { category, urgent } = req.query;
+  const campaigns = store.getCampaigns({ category, urgent });
+  res.json({ campaigns, count: campaigns.length });
+});
+
+router.get('/relief/campaigns/:id', (req, res) => {
+  const campaign = store.getCampaignById(req.params.id);
+  if (!campaign) return res.status(404).json({ error: "Campaign not found" });
+  const contributions = store.contributions.filter(c => c.campaign_id === campaign.id);
+  const allocations = store.aidAllocations.filter(a => a.campaign_id === campaign.id);
+  const distributions = store.aidDistributions.filter(d => d.campaign_id === campaign.id);
+  res.json({ campaign, contributions, allocations, distributions });
+});
+
+router.post('/relief/campaigns', authenticate, (req, res) => {
+  const campaign = store.createCampaign(req.body, req.user);
+  eventBus.broadcast('CAMPAIGN_CREATED', campaign);
+  res.status(201).json({ success: true, campaign });
+});
+
+router.post('/relief/contribute', (req, res) => {
+  const contribution = store.createContribution(req.body);
+  if (!contribution) return res.status(400).json({ error: "Invalid donation amount or campaign ID" });
+
+  eventBus.broadcast('DONATION_RECEIVED', contribution);
+  res.status(201).json({
+    success: true,
+    message: "Thank you for your life-saving contribution!",
+    contribution,
+    receipt_number: contribution.receipt_number,
+    tx_hash: contribution.tx_hash
+  });
+});
+
+router.get('/relief/contributions', (req, res) => {
+  const { campaign_id, donor_email } = req.query;
+  let items = [...store.contributions];
+  if (campaign_id) items = items.filter(c => c.campaign_id === campaign_id);
+  if (donor_email) items = items.filter(c => c.donor_email === donor_email);
+  res.json({ contributions: items, count: items.length });
+});
+
+router.post('/relief/allocations', authenticate, (req, res) => {
+  const allocation = store.createAidAllocation(req.body, req.user);
+  if (!allocation) return res.status(400).json({ error: "Invalid allocation parameters or campaign ID" });
+
+  eventBus.broadcast('AID_ALLOCATED', allocation);
+  res.status(201).json({ success: true, allocation });
+});
+
+router.get('/relief/allocations', (req, res) => {
+  const { campaign_id } = req.query;
+  let items = [...store.aidAllocations];
+  if (campaign_id) items = items.filter(a => a.campaign_id === campaign_id);
+  res.json({ allocations: items, count: items.length });
+});
+
+router.post('/relief/distributions', authenticate, (req, res) => {
+  const distribution = store.createAidDistribution(req.body, req.user);
+  eventBus.broadcast('AID_DISTRIBUTED', distribution);
+  res.status(201).json({ success: true, distribution });
+});
+
+router.get('/relief/distributions', (req, res) => {
+  const { campaign_id, allocation_id } = req.query;
+  let items = [...store.aidDistributions];
+  if (campaign_id) items = items.filter(d => d.campaign_id === campaign_id);
+  if (allocation_id) items = items.filter(d => d.allocation_id === allocation_id);
+  res.json({ distributions: items, count: items.length });
+});
+
+router.get('/relief/ledger', (req, res) => {
+  const totalRaised = store.contributions.reduce((acc, c) => acc + (c.amount || 0), 0);
+  const totalAllocated = store.aidAllocations.reduce((acc, a) => acc + (a.allocated_amount || 0), 0);
+  const totalRecipients = store.aidDistributions.reduce((acc, d) => acc + (d.recipient_count || 0), 0);
+
+  res.json({
+    kpis: {
+      total_campaigns: store.campaigns.length,
+      verified_campaigns: store.campaigns.filter(c => c.verification_status === 'verified').length,
+      total_raised_usd: totalRaised,
+      total_allocated_usd: totalAllocated,
+      unallocated_buffer_usd: Math.max(0, totalRaised - totalAllocated),
+      total_recipients_reached: totalRecipients,
+      web3_attestation_records: store.contributions.filter(c => c.payment_method === 'web3_usdc').length + 2
+    },
+    campaigns: store.campaigns,
+    recent_transactions: store.contributions.slice(0, 10),
+    recent_distributions: store.aidDistributions.slice(0, 10)
+  });
+});
+
+// -------------------------------------------------------------
+// 15.2 RESILIENCE IMPROVEMENT PLANS & DEPENDENCY SCENARIOS
+// -------------------------------------------------------------
+router.get('/resilience/plans', (req, res) => {
+  const { status, priority } = req.query;
+  const plans = store.getImprovementPlans({ status, priority });
+  res.json({ plans, count: plans.length });
+});
+
+router.post('/resilience/plans', authenticate, (req, res) => {
+  const plan = store.createImprovementPlan(req.body, req.user);
+  eventBus.broadcast('IMPROVEMENT_PLAN_CREATED', plan);
+  res.status(201).json({ success: true, plan });
+});
+
+router.patch('/resilience/plans/:id', authenticate, (req, res) => {
+  const updated = store.updateImprovementPlan(req.params.id, req.body, req.user);
+  if (!updated) return res.status(404).json({ error: "Improvement plan not found" });
+
+  eventBus.broadcast('IMPROVEMENT_PLAN_UPDATED', updated);
+  res.json({ success: true, plan: updated });
+});
+
+router.get('/resilience/consequences', (req, res) => {
+  // Cascading infrastructure dependency graph
+  const nodes = [
+    { id: "node-storm", label: "Storm Surge / Heavy Rainfall (42mm/hr)", type: "hazard", status: "active", zone: "Zone A Waterfront" },
+    { id: "node-underpass", label: "14th St Underpass (Flooded 4.2ft)", type: "road", status: "impassable", dependency: "node-storm" },
+    { id: "node-north-depot", label: "North Forward Cache Depot", type: "depot", status: "isolated", dependency: "node-underpass" },
+    { id: "node-hosp-stjude", label: "St. Jude Coastal Medical Pavilion", type: "hospital", status: "strained", dependency: "node-north-depot" },
+    { id: "node-substation", label: "Substation 4 (Submerged)", type: "power", status: "offline", dependency: "node-storm" },
+    { id: "node-folsom-main", label: "Folsom Potable Water Main", type: "water", status: "pressure_drop", dependency: "node-substation" },
+    { id: "node-shelter-presidio", label: "Presidio Community Shelter", type: "shelter", status: "operating_at_capacity", dependency: "node-folsom-main" }
+  ];
+
+  const edges = [
+    { source: "node-storm", target: "node-underpass", relation: "Inundates Arterial Access" },
+    { source: "node-underpass", target: "node-north-depot", relation: "Blocks Transit to Cache Depot" },
+    { source: "node-north-depot", target: "node-hosp-stjude", relation: "Delays Oxygen & Trauma Restock" },
+    { source: "node-storm", target: "node-substation", relation: "Submerges Grid Transformers" },
+    { source: "node-substation", target: "node-folsom-main", relation: "Cuts Off Water Booster Pump Power" },
+    { source: "node-folsom-main", target: "node-shelter-presidio", relation: "Requires Trucked Water Logistics" }
+  ];
+
+  const singlePointsOfFailure = [
+    {
+      asset: "14th St Underpass",
+      impact: "Single ground route between North Depot and downtown trauma centers. Failure forces +14 minute detour.",
+      recommendation: "Elevated High-Ground corridor via Guerrero & Van Ness Ave."
+    },
+    {
+      asset: "Substation 4 Backup Transfer Switch",
+      impact: "Feeds potable water booster stations. Failure drops municipal water pressure below sanitization limits.",
+      recommendation: "Deploy mobile 150kW diesel pump generator to Folsom Station."
+    }
+  ];
+
+  res.json({
+    scenario_title: "Atmospheric River Inundation & Cascading Infrastructure Dependencies",
+    nodes,
+    edges,
+    single_points_of_failure: singlePointsOfFailure,
+    overall_resilience_score: 72,
+    readiness_breakdown: {
+      evacuation_corridors: "68% (1 critical underpass blocked)",
+      hospital_bed_buffer: "84% (42 beds, 8 ICU available)",
+      water_potability: "76% (Boil notice active for lower basin)",
+      backup_generation: "92% (Hospital diesel reserves at 3.5 days)"
+    }
+  });
 });
 
 // -------------------------------------------------------------

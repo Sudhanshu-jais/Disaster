@@ -740,3 +740,308 @@ export const seedAuditLogs = [
     timestamp: new Date(Date.now() - 45 * 60000).toISOString()
   }
 ];
+
+// -------------------------------------------------------------
+// RELIEF & DONATIONS / RELIEFCHAIN LEDGER SEED DATA
+// -------------------------------------------------------------
+export const seedCampaigns = [
+  {
+    id: "camp-001",
+    title: "Marina Basin Flash Flood Emergency Relief & Resettlement",
+    description: "Emergency relief fund providing direct food rations, potable water, dry bedding, and temporary shelter stipends for over 350 families displaced by rapid stormwater inundation in the Marina basin.",
+    category: "flood_relief",
+    target_amount: 120000,
+    raised_amount: 86450,
+    currency: "USD",
+    organizer_name: "DisasterOS Civic Relief Initiative",
+    organizer_role: "Municipal Response Partner",
+    organizer_verified: true,
+    verification_status: "verified",
+    urgent: true,
+    beneficiary_community: "Marina Basin & Waterfront Evacuees (Zone A)",
+    intended_use: "40% Food & Clean Water, 35% Temporary Housing Vouchers, 15% Medical Supplies, 10% Logistics",
+    relief_items_needed: [
+      { name: "Emergency Drinking Water (10L)", target: 5000, fulfilled: 3600 },
+      { name: "High-Calorie Rations Packs", target: 3000, fulfilled: 2450 },
+      { name: "Fleece Blankets & Dry Bedding", target: 1200, fulfilled: 920 },
+      { name: "Family First-Aid Trauma Kits", target: 400, fulfilled: 310 }
+    ],
+    updates: [
+      {
+        id: "upd-01",
+        date: new Date(Date.now() - 3 * 3600000).toISOString(),
+        title: "First Wave of 1,200 Clean Water Jugs Dispatched to Presidio Shelter",
+        content: "Verified delivery by logistics convoy team. Distribution receipts logged in ReliefChain ledger.",
+        verified_by: "Rachel Simmons (Red Cross Coordinator)"
+      }
+    ],
+    created_at: new Date(Date.now() - 48 * 3600000).toISOString(),
+    crypto_contract_address: "0x71C...49A2 (ReliefChain Attestation Protocol)",
+    audit_score: 98
+  },
+  {
+    id: "camp-002",
+    title: "Trauma Center Emergency Blood, Oxygen & Pediatric ICU Fund",
+    description: "Urgent medical supplies procurement for St. Jude Coastal Medical Pavilion and Metropolitan Trauma Center to replenish oxygen tanks, blood bags, and pediatric triage equipment.",
+    category: "medical_aid",
+    target_amount: 75000,
+    raised_amount: 54200,
+    currency: "USD",
+    organizer_name: "Regional Trauma Support Network",
+    organizer_role: "Healthcare NGO",
+    organizer_verified: true,
+    verification_status: "verified",
+    urgent: true,
+    beneficiary_community: "Hospital Triage Patients & Critical Casualties",
+    intended_use: "50% Oxygen Concentrators & Tanks, 30% Blood Drive Logistics, 20% Pediatric Trauma Kits",
+    relief_items_needed: [
+      { name: "Portable Oxygen Cylinders", target: 150, fulfilled: 110 },
+      { name: "Universal O-Negative Blood Units", target: 200, fulfilled: 145 },
+      { name: "Pediatric Resuscitation Kits", target: 80, fulfilled: 65 }
+    ],
+    updates: [
+      {
+        id: "upd-02",
+        date: new Date(Date.now() - 5 * 3600000).toISOString(),
+        title: "35 Oxygen Cylinders Delivered to St. Jude Triage",
+        content: "Delivered under ALS escort. Emergency backup power maintained.",
+        verified_by: "Dr. Arvind Patel (Metro Trauma Center)"
+      }
+    ],
+    created_at: new Date(Date.now() - 36 * 3600000).toISOString(),
+    crypto_contract_address: "0x39E...82C1 (ReliefChain Attestation Protocol)",
+    audit_score: 99
+  },
+  {
+    id: "camp-003",
+    title: "Post-Quake Structural Shoring & Temporary Housing Pods",
+    description: "Rapid engineering deployment of hydraulic shoring timber, weather-tight modular pods, and safety inspection kits for households affected by recent seismic rupture in historic masonry districts.",
+    category: "shelter_rebuild",
+    target_amount: 90000,
+    raised_amount: 38700,
+    currency: "USD",
+    organizer_name: "Habitat Emergency Relief Coalition",
+    organizer_role: "Civil Engineering Alliance",
+    organizer_verified: true,
+    verification_status: "verified",
+    urgent: false,
+    beneficiary_community: "Historic District Unreinforced Masonry Residents",
+    intended_use: "60% Heavy Shoring Materials, 25% Modular Tents, 15% Structural Engineer Assessments",
+    relief_items_needed: [
+      { name: "Structural Shoring Beams (Set of 4)", target: 300, fulfilled: 120 },
+      { name: "Heavy-Duty All-Weather Tents (6-Person)", target: 150, fulfilled: 80 }
+    ],
+    updates: [],
+    created_at: new Date(Date.now() - 20 * 3600000).toISOString(),
+    crypto_contract_address: "0x82A...14F9 (ReliefChain Attestation Protocol)",
+    audit_score: 95
+  }
+];
+
+export const seedContributions = [
+  {
+    id: "cnt-101",
+    campaign_id: "camp-001",
+    donor_name: "Sarah Lin",
+    donor_email: "citizen@example.com",
+    amount: 150,
+    currency: "USD",
+    payment_method: "card",
+    status: "completed",
+    tx_hash: "rc-tx-88319024a",
+    receipt_number: "RCP-2026-0841",
+    is_anonymous: false,
+    created_at: new Date(Date.now() - 4 * 3600000).toISOString(),
+    message: "Hoping this reaches the families in Marina Blvd basement apartments quickly!"
+  },
+  {
+    id: "cnt-102",
+    campaign_id: "camp-001",
+    donor_name: "Silicon Valley Civic Tech Foundation",
+    donor_email: "grants@civictech.org",
+    amount: 25000,
+    currency: "USD",
+    payment_method: "bank_transfer",
+    status: "completed",
+    tx_hash: "rc-tx-99401298b",
+    receipt_number: "RCP-2026-0842",
+    is_anonymous: false,
+    created_at: new Date(Date.now() - 12 * 3600000).toISOString(),
+    message: "Emergency matching grant for clean water and sanitation."
+  },
+  {
+    id: "cnt-103",
+    campaign_id: "camp-002",
+    donor_name: "Anonymous Philanthropist",
+    donor_email: "donor@safe.net",
+    amount: 5000,
+    currency: "USD",
+    payment_method: "web3_usdc",
+    status: "completed",
+    tx_hash: "0x98f12a64c501e741bc5a8f273e6b349182a4d983e2091fb6583921ec5418b321",
+    receipt_number: "RCP-2026-0843",
+    is_anonymous: true,
+    created_at: new Date(Date.now() - 8 * 3600000).toISOString(),
+    message: "For pediatric trauma and oxygen tanks."
+  },
+  {
+    id: "cnt-104",
+    campaign_id: "camp-001",
+    donor_name: "Marcus Vance",
+    donor_email: "authority@disasteros.gov",
+    amount: 250,
+    currency: "USD",
+    payment_method: "card",
+    status: "completed",
+    tx_hash: "rc-tx-77192305c",
+    receipt_number: "RCP-2026-0844",
+    is_anonymous: false,
+    created_at: new Date(Date.now() - 2 * 3600000).toISOString(),
+    message: "Supporting our frontline community responders."
+  }
+];
+
+export const seedAidAllocations = [
+  {
+    id: "alc-001",
+    campaign_id: "camp-001",
+    title: "Direct Depot Water & Ration Purchase - Batch A",
+    allocated_amount: 32000,
+    recipient_entity: "Red Cross Bay Area Distribution Hub",
+    purpose: "Procurement of 2,400 water jugs and 1,800 MRE ration packs directly from certified supplier.",
+    approved_by: "Chief Marcus Vance (Emergency Authority)",
+    approved_at: new Date(Date.now() - 10 * 3600000).toISOString(),
+    status: "disbursed",
+    evidence_notes: "Supplier invoice #INV-9938 verified against municipal emergency procurement schedule."
+  },
+  {
+    id: "alc-002",
+    campaign_id: "camp-002",
+    title: "Trauma Oxygen Replenishment Authorization",
+    allocated_amount: 28000,
+    recipient_entity: "St. Jude Coastal Medical Pavilion Logistics",
+    purpose: "Immediate delivery of 60 pressurized medical oxygen cylinders from Central Forward Depot.",
+    approved_by: "Dr. Arvind Patel & EOC Medical Director",
+    approved_at: new Date(Date.now() - 7 * 3600000).toISOString(),
+    status: "delivered",
+    evidence_notes: "Hospital intake delivery receipt #HLOG-4410 signed by Lead Pharmacist."
+  }
+];
+
+export const seedAidDistributions = [
+  {
+    id: "dst-001",
+    allocation_id: "alc-001",
+    campaign_id: "camp-001",
+    item_or_service: "Clean Potable Drinking Water (10L Jugs)",
+    quantity: "1,200 jugs",
+    recipient_count: 320,
+    location: "Presidio Community Center Evacuation Shelter",
+    distributed_at: new Date(Date.now() - 3 * 3600000).toISOString(),
+    verified_by: "Elena Rostova (Warehouse Logistics Officer)",
+    proof_document_url: "evidence/water_distribution_presidio_signed.pdf",
+    status: "delivered",
+    beneficiary_feedback: "Clean water delivered within 3 hours of arrival at shelter."
+  },
+  {
+    id: "dst-002",
+    allocation_id: "alc-002",
+    campaign_id: "camp-002",
+    item_or_service: "Medical Oxygen Concentrators & Cylinders",
+    quantity: "35 cylinders",
+    recipient_count: 28,
+    location: "Metro Trauma Center Acute Respiratory Wing",
+    distributed_at: new Date(Date.now() - 5 * 3600000).toISOString(),
+    verified_by: "Dr. Arvind Patel (Hospital Triage Lead)",
+    proof_document_url: "evidence/oxygen_intake_manifest_signed.pdf",
+    status: "delivered",
+    beneficiary_feedback: "Stabilized 14 asthma and respiratory patients evacuated from flooded basements."
+  }
+];
+
+// -------------------------------------------------------------
+// RESILIENCE IMPROVEMENT PLANS & DEPENDENCY SCENARIOS
+// -------------------------------------------------------------
+export const seedImprovementPlans = [
+  {
+    id: "imp-001",
+    weakness: "14th Street Underpass Inundation Severing South-to-North Transit Corridor",
+    evidence: "Flooded to 4.2ft within 35 minutes of rainfall exceeding 30mm/hr; halted 3 ambulance dispatches until alternate elevated route was computed.",
+    mitigation: "Install automated high-volume dual submersible drainage pumps with autonomous battery backup, and deploy smart dynamic LED detour signage.",
+    priority: "critical",
+    responsible_role: "logistics_director",
+    responsible_owner: "Sgt. Tom Bradley & Dept. of Public Works",
+    deadline: "2026-11-15",
+    progress_pct: 65,
+    status: "in_progress",
+    completion_evidence: "Procurement approved. Civil contractors on-site installing pump mounts; backup battery bank tested at 98% capacity.",
+    reassessment_result: "Projected transit clearance time under 40mm/hr rainfall reduced from 4 hours to zero impassable standing water."
+  },
+  {
+    id: "imp-002",
+    weakness: "St. Jude Coastal Medical Pavilion Single-Point Power Vulnerability",
+    evidence: "Hospital electrical intake is 1.8 meters below sea storm-surge crest line; flood surge required manual switch to secondary diesel generator.",
+    mitigation: "Elevate critical electrical switchgear to 2nd floor mezzanine and install a 250kWh microgrid battery buffer.",
+    priority: "critical",
+    responsible_role: "infrastructure_coordinator",
+    responsible_owner: "Dr. Arvind Patel & Hospital Engineering",
+    deadline: "2026-12-01",
+    progress_pct: 40,
+    status: "in_progress",
+    completion_evidence: "Engineering architectural blueprint complete. Battery buffer unit ordered from regional cache.",
+    reassessment_result: "Hospital ICU and trauma units can sustain continuous operation through Category 4 coastal surge."
+  },
+  {
+    id: "imp-003",
+    weakness: "North Depot Warehouse Bottleneck for Swiftwater Boats",
+    evidence: "Single narrow exit ramp restricted zodiac boat deployment to 1 unit every 12 minutes during peak ingress.",
+    mitigation: "Construct secondary rapid-roll outbound loading dock dedicated to emergency trailer hitches.",
+    priority: "high",
+    responsible_role: "warehouse_supervisor",
+    responsible_owner: "Elena Rostova (Logistics Depot)",
+    deadline: "2026-11-30",
+    progress_pct: 85,
+    status: "in_progress",
+    completion_evidence: "Secondary rollup bay installed. Drill demonstration verified 4 boats deployed in 8 minutes.",
+    reassessment_result: "Deployment throughput improved by 250%."
+  },
+  {
+    id: "imp-004",
+    weakness: "Civilian Emergency Contact Notification Lag during Cellular Congestion",
+    evidence: "SMS alerts experienced a 14-minute queuing delay during initial disaster declaration due to carrier tower saturation.",
+    mitigation: "Integrate multi-carrier RCS, low-bandwidth push tokens, and offline Bluetooth peer-mesh fallback.",
+    priority: "high",
+    responsible_role: "communications_lead",
+    responsible_owner: "Alex Mercer (Systems Admin)",
+    deadline: "2026-11-20",
+    progress_pct: 50,
+    status: "in_progress",
+    completion_evidence: "Web Push and WebSockets service active. Service worker background sync prototyped.",
+    reassessment_result: "Average notification delivery time under network congestion reduced from 14 mins to 18 seconds."
+  }
+];
+
+export const seedEmergencyContacts = [
+  {
+    id: "ec-01",
+    user_email: "citizen@example.com",
+    name: "David Lin",
+    relationship: "Brother",
+    phone: "+1-415-555-0192",
+    email: "david.lin@example.com",
+    notify_sms: true,
+    notify_email: true,
+    share_live_location: true
+  },
+  {
+    id: "ec-02",
+    user_email: "citizen@example.com",
+    name: "Maria Rodriguez",
+    relationship: "Neighbor & Community Volunteer",
+    phone: "+1-415-555-0183",
+    email: "maria.r@example.com",
+    notify_sms: true,
+    notify_email: false,
+    share_live_location: true
+  }
+];
