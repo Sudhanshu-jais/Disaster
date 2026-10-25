@@ -218,7 +218,7 @@ export const DisasterMap: React.FC<DisasterMapProps> = ({
   return (
     <div 
       className="relative rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl bg-[#050817] w-full h-full flex flex-col"
-      style={{ minHeight: minHeightVal }}
+      style={{ minHeight: minHeightVal || '540px' }}
     >
       
       {/* Top Filter Bar Overlay */}
@@ -436,13 +436,13 @@ export const DisasterMap: React.FC<DisasterMapProps> = ({
       {/* Main Leaflet Map View */}
       <div 
         className="w-full flex-1 relative"
-        style={{ height: computedHeight, minHeight: minHeightVal }}
+        style={{ height: computedHeight || '640px', minHeight: minHeightVal || '540px' }}
       >
         <MapContainer
           center={defaultCenter}
           zoom={zoomLevel}
           scrollWheelZoom={true}
-          style={{ width: '100%', height: '100%', minHeight: minHeightVal }}
+          style={{ width: '100%', height: computedHeight || '100%', minHeight: minHeightVal || '540px' }}
         >
           {/* Dynamic Map Camera Controller */}
           <MapViewController 

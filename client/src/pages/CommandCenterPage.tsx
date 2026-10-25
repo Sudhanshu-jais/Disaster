@@ -166,7 +166,7 @@ export const CommandCenterPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-[#050817] text-[#F5F7FB] min-h-[calc(100vh-4rem)]">
+    <div className="flex-1 flex flex-col bg-[#050817] text-[#F5F7FB] min-h-[calc(100vh-4rem)] pt-16 sm:pt-20">
       
       {/* 1. TOP STATUS & SEARCH BAR */}
       <div className="bg-[#0A1022] border-b border-white/[0.08] px-4 py-3 sm:px-6">

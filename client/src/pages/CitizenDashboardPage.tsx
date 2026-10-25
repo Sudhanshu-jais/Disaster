@@ -37,7 +37,7 @@ export const CitizenDashboardPage: React.FC = () => {
   const openHospitals = hospitals.filter(h => h.status === 'open');
 
   return (
-    <div className="flex-1 bg-[#05070d] text-white flex flex-col pb-16 selection:bg-[#38bdf8] selection:text-[#020617]">
+    <div className="flex-1 bg-[#05070d] text-white flex flex-col pb-16 pt-16 sm:pt-20 selection:bg-[#38bdf8] selection:text-[#020617]">
       
       {/* 1. TOP CITIZEN BANNER */}
       <div className="bg-[#0A1022] border-b border-white/[0.08] px-4 py-6 sm:px-8">

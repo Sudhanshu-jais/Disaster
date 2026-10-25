@@ -10,6 +10,7 @@ import { simulationEngine } from '../services/simulationEngine.js';
 import { externalApis } from '../services/externalApis.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { getSupabaseConfig, setRuntimeSupabaseConfig, testSupabaseConnection, syncStoreToSupabase, syncEntityToSupabase } from '../database/supabase.js';
+import { paymentService } from '../services/paymentService.js';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'disasteros_secret_development_key_2026';
@@ -934,6 +935,106 @@ router.get('/relief/contributions', (req, res) => {
   if (campaign_id) items = items.filter(c => c.campaign_id === campaign_id);
   if (donor_email) items = items.filter(c => c.donor_email === donor_email);
   res.json({ contributions: items, count: items.length });
+});
+
+// -------------------------------------------------------------
+// 15.2 RAZORPAY PAYMENT GATEWAY INTEGRATION
+// -------------------------------------------------------------
+router.get('/payment/config', (req, res) => {
+  res.json({
+    key_id: paymentService.getPublicKey(),
+    is_configured: paymentService.isConfigured(),
+    currency: 'INR',
+    supported_methods: ['upi', 'card', 'netbanking', 'wallet']
+  });
+});
+
+router.post('/payment/create-order', async (req, res) => {
+  try {
+    const { amount, currency = 'INR', campaign_id, donor_name, donor_email } = req.body;
+    if (!amount || Number(amount) <= 0) {
+      return res.status(400).json({ error: 'Valid donation amount is required' });
+    }
+
+    const order = await paymentService.createOrder({
+      amount: Number(amount),
+      currency,
+      receipt: `rcpt_${Date.now()}`,
+      notes: {
+        campaign_id: campaign_id || '',
+        donor_name: donor_name || '',
+        donor_email: donor_email || ''
+      }
+    });
+
+    res.json(order);
+  } catch (err) {
+    console.error('[API /payment/create-order] Error:', err);
+    res.status(500).json({ error: 'Failed to create payment order', details: err.message });
+  }
+});
+
+router.post('/payment/verify-and-record', (req, res) => {
+  try {
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      campaign_id,
+      amount,
+      currency = 'INR',
+      donor_name,
+      donor_email,
+      is_anonymous,
+      message,
+      payment_method = 'upi'
+    } = req.body;
+
+    const isValid = paymentService.verifyPaymentSignature({
+      order_id: razorpay_order_id,
+      payment_id: razorpay_payment_id,
+      signature: razorpay_signature
+    });
+
+    if (!isValid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid payment signature verification'
+      });
+    }
+
+    // Record verified payment in ReliefChain ledger
+    const contribution = store.createContribution({
+      campaign_id,
+      amount: Number(amount),
+      currency,
+      donor_name,
+      donor_email,
+      is_anonymous,
+      message,
+      payment_method: payment_method || 'razorpay',
+      razorpay_order_id,
+      razorpay_payment_id
+    });
+
+    if (!contribution) {
+      return res.status(400).json({ error: 'Failed to record contribution in ledger' });
+    }
+
+    eventBus.broadcast('DONATION_RECEIVED', contribution);
+
+    res.status(201).json({
+      success: true,
+      message: 'Payment verified and donation recorded in ReliefChain ledger!',
+      contribution,
+      receipt_number: contribution.receipt_number,
+      tx_hash: contribution.tx_hash,
+      payment_id: razorpay_payment_id
+    });
+  } catch (err) {
+    console.error('[API /payment/verify-and-record] Error:', err);
+    res.status(500).json({ error: 'Payment verification failed', details: err.message });
+  }
 });
 
 router.post('/relief/allocations', authenticate, (req, res) => {

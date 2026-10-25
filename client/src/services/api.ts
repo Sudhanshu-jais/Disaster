@@ -372,6 +372,62 @@ class ApiClient {
     });
   }
 
+  // Razorpay Gateway
+  getPaymentConfig() {
+    return this.request<{
+      key_id: string;
+      is_configured: boolean;
+      currency: string;
+      supported_methods: string[];
+    }>('/payment/config');
+  }
+
+  createPaymentOrder(data: {
+    amount: number;
+    currency?: string;
+    campaign_id?: string;
+    donor_name?: string;
+    donor_email?: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      order_id: string;
+      amount: number;
+      currency: string;
+      key_id: string;
+      is_mock?: boolean;
+    }>('/payment/create-order', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  verifyAndRecordPayment(data: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature?: string;
+    campaign_id: string;
+    amount: number;
+    currency?: string;
+    donor_name?: string;
+    donor_email?: string;
+    is_anonymous?: boolean;
+    message?: string;
+    payment_method?: string;
+  }) {
+    return this.request<{
+      success: boolean;
+      message: string;
+      contribution: DonationContribution;
+      receipt_number: string;
+      tx_hash: string;
+      payment_id: string;
+    }>('/payment/verify-and-record', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
   getContributions(params: Record<string, string> = {}) {
     const query = new URLSearchParams(params).toString();
     return this.request<{ contributions: DonationContribution[]; count: number }>(`/relief/contributions${query ? `?${query}` : ''}`);

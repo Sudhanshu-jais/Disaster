@@ -114,7 +114,7 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-40 bg-[#05070d]/95 backdrop-blur-xl border-b border-white/[0.08] shadow-2xl">
+      <header className="fixed inset-x-0 top-0 z-[10000] bg-[#05070d]/95 backdrop-blur-xl border-b border-white/[0.08] shadow-2xl">
       <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 sm:h-20 items-center justify-between gap-3">
           

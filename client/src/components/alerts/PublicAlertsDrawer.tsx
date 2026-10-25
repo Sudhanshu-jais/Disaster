@@ -76,7 +76,7 @@ export const PublicAlertsDrawer: React.FC<PublicAlertsDrawerProps> = ({ isOpen, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[10100] overflow-hidden animate-in fade-in duration-200">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" 

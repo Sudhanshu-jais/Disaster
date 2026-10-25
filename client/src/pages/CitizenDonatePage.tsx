@@ -25,8 +25,11 @@ import {
   PackageCheck,
   Sparkles,
   QrCode,
-  Lock
+  Lock,
+  Smartphone,
+  Check
 } from 'lucide-react';
+import { openRazorpayPayment } from '../services/razorpay';
 
 export const CitizenDonatePage: React.FC = () => {
   const { user } = useAuth();
@@ -41,14 +44,16 @@ export const CitizenDonatePage: React.FC = () => {
 
   // Donation Modal state
   const [showDonateModal, setShowDonateModal] = useState(false);
-  const [donateAmount, setDonateAmount] = useState<number>(50);
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'upi' | 'bank_transfer' | 'web3_usdc'>('card');
+  const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
+  const [donateAmount, setDonateAmount] = useState<number>(500);
+  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'bank_transfer' | 'web3_usdc'>('upi');
   const [donorName, setDonorName] = useState(user?.fullName || '');
   const [donorEmail, setDonorEmail] = useState(user?.email || '');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recentReceipt, setRecentReceipt] = useState<any>(null);
+  const [paymentConfig, setPaymentConfig] = useState<{ key_id: string; is_configured: boolean } | null>(null);
 
   // Load live ledger data
   const loadData = async () => {
@@ -64,6 +69,9 @@ export const CitizenDonatePage: React.FC = () => {
 
       const distRes = await api.getAidDistributions();
       setDistributions(distRes.distributions);
+
+      const configRes = await api.getPaymentConfig();
+      setPaymentConfig(configRes);
     } catch (err) {
       console.warn('[DonatePage] Error fetching ledger:', err);
     }
@@ -77,6 +85,12 @@ export const CitizenDonatePage: React.FC = () => {
     setSelectedCampaign(campaign);
     setShowDonateModal(true);
     setRecentReceipt(null);
+    setDonateAmount(currency === 'INR' ? 500 : 50);
+  };
+
+  const handleCurrencyChange = (newCur: 'INR' | 'USD') => {
+    setCurrency(newCur);
+    setDonateAmount(newCur === 'INR' ? 500 : 50);
   };
 
   const handleSubmitDonation = async (e: React.FormEvent) => {
@@ -84,6 +98,68 @@ export const CitizenDonatePage: React.FC = () => {
     if (!selectedCampaign || donateAmount <= 0) return;
 
     setIsSubmitting(true);
+
+    // 1. Razorpay Payment Gateway Flow (for UPI & Card)
+    if (paymentMethod === 'upi' || paymentMethod === 'card') {
+      try {
+        const order = await api.createPaymentOrder({
+          amount: Number(donateAmount),
+          currency,
+          campaign_id: selectedCampaign.id,
+          donor_name: isAnonymous ? "Anonymous Donor" : (donorName || "Civilian Donor"),
+          donor_email: donorEmail || user?.email || "supporter@community.local"
+        });
+
+        await openRazorpayPayment({
+          keyId: order.key_id,
+          orderId: order.order_id,
+          amount: order.amount,
+          currency: order.currency,
+          campaignTitle: selectedCampaign.title,
+          donorName: isAnonymous ? "Anonymous Donor" : (donorName || "Civilian Donor"),
+          donorEmail: donorEmail || user?.email || "supporter@community.local",
+          isMock: order.is_mock,
+          onSuccess: async (rzpRes) => {
+            try {
+              const verified = await api.verifyAndRecordPayment({
+                razorpay_order_id: rzpRes.razorpay_order_id,
+                razorpay_payment_id: rzpRes.razorpay_payment_id,
+                razorpay_signature: rzpRes.razorpay_signature,
+                campaign_id: selectedCampaign.id,
+                amount: Number(donateAmount),
+                currency,
+                donor_name: isAnonymous ? "Anonymous Donor" : (donorName || "Civilian Donor"),
+                donor_email: donorEmail || user?.email || "supporter@community.local",
+                is_anonymous: isAnonymous,
+                message,
+                payment_method: paymentMethod
+              });
+
+              emergencySound.playStatusChime();
+              setRecentReceipt(verified);
+              loadData();
+            } catch (err: any) {
+              alert(`Payment verification failed: ${err.message}`);
+            } finally {
+              setIsSubmitting(false);
+            }
+          },
+          onError: (err: any) => {
+            alert(`Payment could not be processed: ${err?.description || err?.message || 'Cancelled'}`);
+            setIsSubmitting(false);
+          },
+          onDismiss: () => {
+            setIsSubmitting(false);
+          }
+        });
+      } catch (err: any) {
+        alert(`Failed to initialize payment gateway: ${err.message}`);
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    // 2. Direct Wire & Web3 USDC Fallback Flow
     try {
       const res = await api.submitDonation({
         campaign_id: selectedCampaign.id,
@@ -119,7 +195,7 @@ export const CitizenDonatePage: React.FC = () => {
   );
 
   return (
-    <div className="flex-1 bg-[#05070d] text-white flex flex-col pb-20 selection:bg-[#38bdf8] selection:text-[#05070d]">
+    <div className="flex-1 bg-[#05070d] text-white flex flex-col pb-20 pt-16 sm:pt-20 selection:bg-[#38bdf8] selection:text-[#05070d]">
       
       {/* 1. Header Banner */}
       <div className="bg-[#0A1022] border-b border-white/[0.08] px-4 py-8 sm:px-8">
@@ -456,30 +532,73 @@ export const CitizenDonatePage: React.FC = () => {
             {recentReceipt ? (
               <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-3">
                 <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
-                <h4 className="text-base font-bold text-white">Donation Confirmed!</h4>
+                <h4 className="text-base font-bold text-white">Payment Confirmed & Verified!</h4>
                 <p className="text-xs text-white/70">
-                  Thank you! Your donation has been recorded on the ReliefChain ledger.
+                  Thank you! Your donation was successfully processed via Razorpay and recorded on the ReliefChain ledger.
                 </p>
-                <div className="p-3 rounded-xl bg-black/40 text-left space-y-1 font-mono text-[11px]">
-                  <div>Receipt: <span className="text-emerald-400 font-bold">{recentReceipt.receipt_number}</span></div>
-                  <div>Amount: <span className="text-white">${recentReceipt.contribution.amount} USD</span></div>
-                  <div className="truncate text-white/50">Tx: {recentReceipt.tx_hash}</div>
+                <div className="p-3.5 rounded-xl bg-black/40 text-left space-y-1.5 font-mono text-[11px] border border-white/10">
+                  <div className="flex justify-between">
+                    <span className="text-white/60">Receipt ID:</span>
+                    <span className="text-emerald-400 font-bold">{recentReceipt.receipt_number}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-white/60">Amount Paid:</span>
+                    <span className="text-white font-bold">{currency === 'INR' ? '₹' : '$'}{recentReceipt.contribution?.amount || donateAmount} {currency}</span>
+                  </div>
+                  {recentReceipt.payment_id && (
+                    <div className="flex justify-between">
+                      <span className="text-white/60">Razorpay ID:</span>
+                      <span className="text-[#38bdf8] font-bold truncate max-w-[180px]">{recentReceipt.payment_id}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-white/60">Gateway Status:</span>
+                    <span className="text-emerald-400 font-bold flex items-center gap-1">
+                      <Check className="w-3 h-3" /> SUCCESS (PAID)
+                    </span>
+                  </div>
+                  <div className="pt-1 text-[10px] text-white/40 truncate">
+                    Attestation: {recentReceipt.tx_hash}
+                  </div>
                 </div>
                 <button
                   onClick={() => setShowDonateModal(false)}
                   className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors cursor-pointer"
                 >
-                  Close & View Records
+                  Close & View Ledger Records
                 </button>
               </div>
             ) : (
               <form onSubmit={handleSubmitDonation} className="space-y-4">
                 
-                {/* Amount presets */}
+                {/* Currency & Amount Selection */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-white/80">Select Donation Amount</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-white/80">Select Donation Amount</label>
+                    <div className="inline-flex rounded-lg bg-white/10 p-0.5 border border-white/10 text-[11px] font-mono">
+                      <button
+                        type="button"
+                        onClick={() => handleCurrencyChange('INR')}
+                        className={`px-2 py-0.5 rounded-md font-bold transition-colors cursor-pointer ${
+                          currency === 'INR' ? 'bg-[#38bdf8] text-[#05070d]' : 'text-white/70 hover:text-white'
+                        }`}
+                      >
+                        ₹ INR (UPI / Cards)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCurrencyChange('USD')}
+                        className={`px-2 py-0.5 rounded-md font-bold transition-colors cursor-pointer ${
+                          currency === 'USD' ? 'bg-[#38bdf8] text-[#05070d]' : 'text-white/70 hover:text-white'
+                        }`}
+                      >
+                        $ USD
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-4 gap-2">
-                    {[25, 50, 100, 250].map((amt) => (
+                    {(currency === 'INR' ? [250, 500, 1000, 2500] : [25, 50, 100, 250]).map((amt) => (
                       <button
                         key={amt}
                         type="button"
@@ -490,80 +609,108 @@ export const CitizenDonatePage: React.FC = () => {
                             : 'bg-white/5 text-white/80 border border-white/10 hover:bg-white/10'
                         }`}
                       >
-                        ${amt}
+                        {currency === 'INR' ? `₹${amt}` : `$${amt}`}
                       </button>
                     ))}
                   </div>
 
                   <div className="relative mt-2">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-mono text-white/40 text-sm">$</span>
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-mono text-white/40 text-sm">
+                      {currency === 'INR' ? '₹' : '$'}
+                    </span>
                     <input
                       type="number"
                       min="1"
                       value={donateAmount}
                       onChange={(e) => setDonateAmount(Number(e.target.value))}
-                      placeholder="Custom amount"
+                      placeholder={`Custom ${currency} amount`}
                       className="w-full bg-white/[0.06] border border-white/15 focus:border-[#38bdf8] focus:outline-none rounded-xl pl-8 pr-4 py-2 text-xs font-mono text-white"
                     />
                   </div>
                 </div>
 
-                {/* Payment Method Selector */}
+                {/* Payment Gateway Method Selector */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-white/80">Payment Method</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-white/80">Payment Method</label>
+                    <span className="text-[10px] font-mono text-sky-400 flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" /> Razorpay Secured
+                    </span>
+                  </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <button
                       type="button"
-                      onClick={() => setPaymentMethod('card')}
-                      className={`p-2.5 rounded-xl flex items-center gap-2 border transition-colors cursor-pointer ${
-                        paymentMethod === 'card'
-                          ? 'bg-[#38bdf8]/15 border-[#38bdf8] text-[#38bdf8] font-bold'
-                          : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
-                      }`}
-                    >
-                      <CreditCard className="w-4 h-4" />
-                      <span>Credit / Debit Card</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('bank_transfer')}
-                      className={`p-2.5 rounded-xl flex items-center gap-2 border transition-colors cursor-pointer ${
-                        paymentMethod === 'bank_transfer'
-                          ? 'bg-[#38bdf8]/15 border-[#38bdf8] text-[#38bdf8] font-bold'
-                          : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
-                      }`}
-                    >
-                      <Building className="w-4 h-4" />
-                      <span>Bank Transfer</span>
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={() => setPaymentMethod('upi')}
-                      className={`p-2.5 rounded-xl flex items-center gap-2 border transition-colors cursor-pointer ${
+                      className={`p-2.5 rounded-xl flex items-start gap-2 border transition-colors cursor-pointer text-left ${
                         paymentMethod === 'upi'
                           ? 'bg-[#38bdf8]/15 border-[#38bdf8] text-[#38bdf8] font-bold'
                           : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
                       }`}
                     >
-                      <QrCode className="w-4 h-4" />
-                      <span>UPI / Fast Pay</span>
+                      <QrCode className="w-4 h-4 mt-0.5 shrink-0" />
+                      <div>
+                        <div>UPI / QR Instant</div>
+                        <div className="text-[10px] opacity-70 font-normal">GPay, PhonePe, Paytm</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('card')}
+                      className={`p-2.5 rounded-xl flex items-start gap-2 border transition-colors cursor-pointer text-left ${
+                        paymentMethod === 'card'
+                          ? 'bg-[#38bdf8]/15 border-[#38bdf8] text-[#38bdf8] font-bold'
+                          : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                      }`}
+                    >
+                      <CreditCard className="w-4 h-4 mt-0.5 shrink-0" />
+                      <div>
+                        <div>Cards & NetBanking</div>
+                        <div className="text-[10px] opacity-70 font-normal">Visa, RuPay, MC, Banks</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('bank_transfer')}
+                      className={`p-2.5 rounded-xl flex items-start gap-2 border transition-colors cursor-pointer text-left ${
+                        paymentMethod === 'bank_transfer'
+                          ? 'bg-[#38bdf8]/15 border-[#38bdf8] text-[#38bdf8] font-bold'
+                          : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                      }`}
+                    >
+                      <Building className="w-4 h-4 mt-0.5 shrink-0" />
+                      <div>
+                        <div>Bank Wire / NEFT</div>
+                        <div className="text-[10px] opacity-70 font-normal">Direct Institution Wire</div>
+                      </div>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('web3_usdc')}
-                      className={`p-2.5 rounded-xl flex items-center gap-2 border transition-colors cursor-pointer ${
+                      className={`p-2.5 rounded-xl flex items-start gap-2 border transition-colors cursor-pointer text-left ${
                         paymentMethod === 'web3_usdc'
                           ? 'bg-purple-500/20 border-purple-400 text-purple-300 font-bold'
                           : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
                       }`}
                     >
-                      <Coins className="w-4 h-4 text-purple-400" />
-                      <span>ReliefChain (USDC)</span>
+                      <Coins className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
+                      <div>
+                        <div>ReliefChain (USDC)</div>
+                        <div className="text-[10px] opacity-70 font-normal">Web3 Ledger Hash</div>
+                      </div>
                     </button>
                   </div>
+                </div>
+
+                {/* Gateway Trust Pill */}
+                <div className="p-2 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-between text-[10px] text-white/70 font-mono">
+                  <div className="flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>256-Bit SSL Encrypted via Razorpay</span>
+                  </div>
+                  <span className="text-[#38bdf8] font-bold">100% RELIEF DIRECT</span>
                 </div>
 
                 {/* Donor Details */}
@@ -613,10 +760,14 @@ export const CitizenDonatePage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting || donateAmount <= 0}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#2563eb] to-[#38bdf8] hover:opacity-95 text-white font-bold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#0284c7] via-[#0ea5e9] to-[#38bdf8] hover:opacity-95 text-white font-bold text-xs shadow-lg shadow-sky-950/30 transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Lock className="w-4 h-4" />
-                  <span>{isSubmitting ? 'Processing Payment...' : `Complete $${donateAmount} Donation`}</span>
+                  <span>
+                    {isSubmitting 
+                      ? 'Processing Secure Checkout...' 
+                      : `Proceed with ${currency === 'INR' ? '₹' : '$'}${donateAmount} ${paymentMethod === 'upi' || paymentMethod === 'card' ? 'via Razorpay' : 'Donation'}`}
+                  </span>
                 </button>
               </form>
             )}

@@ -104,7 +104,7 @@ export const EmergencyLocationPickerMap: React.FC<EmergencyLocationPickerMapProp
     <div className="space-y-2">
       {/* Map Container Box */}
       <div 
-        className="relative w-full rounded-2xl overflow-hidden border border-white/20 shadow-xl bg-[#05070d]"
+        className="relative w-full rounded-2xl overflow-hidden border border-white/20 shadow-xl bg-[#05070d] isolate z-0"
         style={{ height }}
       >
         <MapContainer

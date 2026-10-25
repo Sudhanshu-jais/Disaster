@@ -23,7 +23,7 @@ export const LiveMapPage: React.FC = () => {
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
 
   return (
-    <div className="flex-1 bg-[#050817] text-[#F5F7FB] flex flex-col pb-12">
+    <div className="flex-1 bg-[#050817] text-[#F5F7FB] flex flex-col pb-12 pt-16 sm:pt-20">
       
       {/* Top Header Banner */}
       <div className="bg-[#0A1022] border-b border-white/[0.08] px-4 py-4 sm:px-6">
@@ -127,7 +127,7 @@ export const LiveMapPage: React.FC = () => {
         </div>
 
         {/* Tactical Map Container */}
-        <div className="relative rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl min-h-[640px]">
+        <div className="relative rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl min-h-[640px] h-[640px]">
           <DisasterMap
             height="640px"
             selectedIncident={selectedIncident}
