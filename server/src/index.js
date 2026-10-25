@@ -2,11 +2,20 @@
 import http from 'http';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load both root .env and server/.env
+dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
 import apiRouter from './routes/api.js';
 import { eventBus } from './services/eventBus.js';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;

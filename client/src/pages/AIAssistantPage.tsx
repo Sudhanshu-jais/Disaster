@@ -110,7 +110,7 @@ export const AIAssistantPage: React.FC = () => {
   const [selectedLocationKey, setSelectedLocationKey] = useState<string>('zone-a');
   const [isGeminiModalOpen, setIsGeminiModalOpen] = useState(false);
   const [isGeminiActive, setIsGeminiActive] = useState(false);
-  const [activeModel, setActiveModel] = useState<string>('gemini-2.0-flash');
+  const [activeModel, setActiveModel] = useState<string>('gemini-3.5-flash');
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const activeZone = PRESET_LOCATIONS[selectedLocationKey];
@@ -202,7 +202,7 @@ export const AIAssistantPage: React.FC = () => {
         ]}
         title="AI Disaster Assistant"
         description="Timely, location-specific intelligence analyzing floods, earthquakes, fires, and extreme weather to provide early warnings and accelerate emergency response."
-        statusText={isGeminiActive ? `Gemini 2.0 Connected (${activeModel})` : "AI Predictive Engine Active"}
+        statusText={isGeminiActive ? `Gemini Connected (${activeModel})` : "AI Predictive Engine Active"}
       />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 w-full mt-6 space-y-6">

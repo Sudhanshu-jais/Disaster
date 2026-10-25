@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { api } from '../services/api';
 import { socket } from '../services/socket';
 import { syncIncidentDirectly, getSupabaseConfig } from '../services/supabase';
+import { emergencySound } from '../services/emergencySound';
 import { 
   Incident, 
   Disaster, 
@@ -246,10 +247,28 @@ export const DisasterProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setIncidents((prev) => prev.map((i) => (i.id === updatedInc.id ? { ...i, ...updatedInc } : i)));
     });
 
+    const unsubAlert = socket.on('WEATHER_ALERT', (newAlert: any) => {
+      const alertObj: AlertNotification = newAlert?.alert || newAlert;
+      if (!alertObj || !alertObj.id) return;
+      setAlerts((prev) => [alertObj, ...prev.filter((a) => a.id !== alertObj.id)]);
+      addNotification(
+        `🚨 PUBLIC ALERT: ${alertObj.title}`,
+        `${alertObj.message} · Area: ${alertObj.affected_area}`,
+        alertObj.severity === 'critical' ? 'critical' : 'high',
+        'WEATHER_ALERT'
+      );
+      if (alertObj.severity === 'critical') {
+        emergencySound.playEmergencySiren(4);
+      } else {
+        emergencySound.playStatusChime();
+      }
+    });
+
     return () => {
       unsubStatus();
       unsubSOS();
       unsubIncUpdated();
+      unsubAlert();
     };
   }, [refreshData]);
 

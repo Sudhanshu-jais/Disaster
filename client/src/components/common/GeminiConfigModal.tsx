@@ -52,7 +52,7 @@ export const GeminiConfigModal: React.FC<GeminiConfigModalProps> = ({
       setStatus({
         configured: Boolean(localKey),
         maskedKey: localKey ? `${localKey.slice(0, 6)}...${localKey.slice(-4)}` : null,
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.5-flash',
         provider: 'Google Gemini'
       });
     }
@@ -70,7 +70,7 @@ export const GeminiConfigModal: React.FC<GeminiConfigModalProps> = ({
     setIsTesting(true);
     setFeedback({
       type: 'info',
-      message: 'Connecting to Google Generative Language API (gemini-2.0-flash)...'
+      message: 'Connecting to Google Generative Language API (gemini-3.5-flash)...'
     });
 
     try {
@@ -81,17 +81,17 @@ export const GeminiConfigModal: React.FC<GeminiConfigModalProps> = ({
       setStatus(res.status || {
         configured: true,
         maskedKey: `${apiKey.trim().slice(0, 6)}...${apiKey.trim().slice(-4)}`,
-        model: res.model || 'gemini-2.0-flash',
+        model: res.model || 'gemini-3.5-flash',
         provider: 'Google Gemini'
       });
 
       setFeedback({
         type: 'success',
-        message: `Verified successfully! Connected to Google ${res.model || 'gemini-2.0-flash'}.`
+        message: `Verified successfully! Connected to Google ${res.model || 'gemini-3.5-flash'}.`
       });
 
       if (onKeyUpdated) {
-        onKeyUpdated(true, res.model || 'gemini-2.0-flash');
+        onKeyUpdated(true, res.model || 'gemini-3.5-flash');
       }
     } catch (err: any) {
       setFeedback({
@@ -167,7 +167,7 @@ export const GeminiConfigModal: React.FC<GeminiConfigModalProps> = ({
         {/* Body */}
         <div className="mt-5 space-y-4 relative z-10 text-xs sm:text-sm">
           <p className="text-white/70 leading-relaxed">
-            Connect Google&apos;s latest <strong className="text-white">Gemini 2.0 Flash</strong> model to empower DisasterOS with intelligent, multi-turn emergency guidance grounded in live shelter capacity, hospital trauma beds, and road hazards.
+            Connect Google&apos;s latest <strong className="text-white">Gemini 3.5 Flash</strong> model to empower DisasterOS with intelligent, multi-turn emergency guidance grounded in live shelter capacity, hospital trauma beds, and road hazards.
           </p>
 
           {/* External Key Link Box */}

@@ -1,5 +1,5 @@
 // DisasterOS AI Tactical Operational Command Center
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDisaster } from '../context/DisasterContext';
 import { DisasterMap } from '../components/map/DisasterMap';
@@ -29,7 +29,8 @@ import {
   Sliders,
   ShieldCheck,
   Check,
-  PackageCheck
+  PackageCheck,
+  Sparkles
 } from 'lucide-react';
 
 export const CommandCenterPage: React.FC = () => {
@@ -59,6 +60,12 @@ export const CommandCenterPage: React.FC = () => {
   
   // Selected Incident for Contextual Panel
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(() => incidents[0] || null);
+
+  useEffect(() => {
+    if (!selectedIncident && incidents.length > 0) {
+      setSelectedIncident(incidents[0]);
+    }
+  }, [incidents, selectedIncident]);
 
   // Bottom drawer active tab
   const [bottomTab, setBottomTab] = useState<'teams' | 'hospitals' | 'inventory' | 'shelters'>('teams');
@@ -222,6 +229,16 @@ export const CommandCenterPage: React.FC = () => {
               <PlusCircle className="w-3.5 h-3.5 shrink-0" />
               <span className="shrink-0 whitespace-nowrap">Report SOS</span>
             </button>
+
+            {/* AI Assistant Link */}
+            <Link
+              to="/ai-assistant"
+              className="pill-button-secondary text-xs py-1.5 px-3 cursor-pointer shrink-0"
+              title="Open Fullscreen AI Intelligence Assistant"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#38bdf8] shrink-0" />
+              <span className="shrink-0 whitespace-nowrap">AI Assistant</span>
+            </Link>
 
             {/* Reset Demo State Button */}
             <button

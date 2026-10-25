@@ -16,10 +16,11 @@ export class AIService {
 
   getStatus() {
     const key = this.geminiKey || process.env.GEMINI_API_KEY;
+    const activeModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
     return {
       configured: Boolean(key && key.trim().length > 0),
       maskedKey: key && key.length > 10 ? `${key.slice(0, 6)}...${key.slice(-4)}` : null,
-      model: 'gemini-2.0-flash',
+      model: activeModel,
       provider: 'Google Gemini'
     };
   }
@@ -191,28 +192,26 @@ export class AIService {
         ).join("\n")
       : '- 14th St Underpass: Flooded (4ft standing water) - impassable\n- Pier 14: Storm surge - closed';
 
-    const systemPrompt = `You are DisasterOS AI, an expert emergency response and disaster safety assistant.
+    const systemPrompt = `You are DisasterOS AI, a calm, intelligent emergency response and disaster safety assistant.
 Your goal is to provide fast, life-saving, calm, and actionable advice to people during disasters.
 
-User Persona: ${role === 'citizen' ? 'Civilian resident seeking safety, evacuation, or first aid guidance.' : 'EOC Incident Commander or Operator coordinating emergency response.'}
+User Persona: ${role === 'citizen' ? 'Civilian resident seeking safety, evacuation, shelter, or first aid guidance.' : 'EOC Incident Commander or Operator coordinating emergency response.'}
 
-LIVE DISASTER TELEMETRY (REAL SCENARIO DATA):
-- Active Crisis: ${disaster.title} (Severity: ${disaster.severity})
-- Open Evacuation Shelters:
+LIVE TELEMETRY REFERENCE:
+- Crisis: ${disaster.title} (Severity: ${disaster.severity})
+- Open Shelters:
 ${shelters}
-
-- Regional Hospitals & Trauma Capacity:
+- Regional Hospitals:
 ${hospitals}
-
-- Known Road Hazards & Closures:
+- Known Road Hazards:
 ${hazards}
 
-GUIDELINES FOR YOUR RESPONSES:
-1. Always prioritize immediate human life safety.
-2. Structure your answers cleanly with markdown bolding, bullet points, and numbered action steps.
-3. If the user is trapped or in life-threatening peril, instruct them to dial 911 or click "Report SOS" on DisasterOS immediately.
-4. Ground your navigation, evacuation, and shelter advice in the real-time scenario data above.
-5. Be supportive, concise, and clear. Avoid filler phrases. Answer questions directly.`;
+CRITICAL RULES:
+1. ONLY ANSWER WHAT IS ASKED: If the user says "hi", "hello", or greets you, greet them warmly and concisely in 1-2 sentences. Mention that you have real-time access to active shelters, road hazards, and hospital capacities, and ask how you can help. Do NOT dump shelters or hazards upon greetings.
+2. DO NOT DUMP ALL TELEMETRY: Only provide shelter, hospital, or road hazard info if the user explicitly asks for it (e.g. "where is a shelter?", "are roads closed?"). When providing shelters or hazards, list only the top 2-3 most relevant items with concise bullet points.
+3. NO UNNECESSARY ALARM HEADERS: Do NOT prefix everyday messages with emergency alarm sirens or "🚨 If you are trapped...". Only provide urgent 911 / SOS alerts if the user explicitly describes being trapped, injured, or in immediate life danger.
+4. CLEAN & CONCISE FORMATTING: Keep your answers compact, clean, and directly actionable (max 2-3 short paragraphs or clean bullet points). Avoid overwhelming walls of text, duplicate headers, or unnecessary divider lines.
+5. CALM & REASSURING TONE: Maintain a supportive, clear, and reassuring tone. Answer questions directly without robotic filler phrases.`;
 
     // Format chat history for Gemini
     const contents = [];
@@ -234,8 +233,13 @@ GUIDELINES FOR YOUR RESPONSES:
       parts: [{ text: prompt }]
     });
 
-    // Try gemini-2.0-flash, fallback to gemini-1.5-flash
-    const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+    // Try prioritized models: gemini-3.5-flash verified working with this key
+    const configuredModel = process.env.GEMINI_MODEL;
+    const defaultModels = ['gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+    const modelsToTry = configuredModel
+      ? [configuredModel, ...defaultModels.filter(m => m !== configuredModel)]
+      : defaultModels;
+
     let lastError = null;
 
     for (const model of modelsToTry) {
@@ -245,7 +249,7 @@ GUIDELINES FOR YOUR RESPONSES:
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            system_instruction: {
+            systemInstruction: {
               parts: [{ text: systemPrompt }]
             },
             contents,
@@ -284,15 +288,16 @@ GUIDELINES FOR YOUR RESPONSES:
 
   // 4. Unified Assistant Handler (Gemini with Heuristic Fallback)
   async answerQuestion(question, options = {}) {
-    const key = options.apiKey || options.headers?.['x-gemini-key'] || this.geminiKey || process.env.GEMINI_API_KEY;
+    const rawKey = options.apiKey || options.headers?.['x-gemini-key'] || this.geminiKey || process.env.GEMINI_API_KEY;
+    const isValidKey = Boolean(rawKey && typeof rawKey === 'string' && rawKey.trim().length > 10 && rawKey !== 'undefined' && rawKey !== 'null');
     
-    if (key) {
+    if (isValidKey) {
       try {
         const geminiResult = await this.callGemini(question, {
           history: options.history || [],
           context: options.context || {},
           role: options.role || 'citizen',
-          apiKey: key
+          apiKey: rawKey.trim()
         });
         return geminiResult;
       } catch (err) {

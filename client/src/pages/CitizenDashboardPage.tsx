@@ -23,8 +23,10 @@ import {
 
 export const CitizenDashboardPage: React.FC = () => {
   const { user } = useAuth();
-  const { incidents, shelters, hospitals, disaster, isDemoMode } = useDisaster();
+  const { incidents, shelters, hospitals, disaster, alerts, isDemoMode } = useDisaster();
   const navigate = useNavigate();
+
+  const primaryAlert = alerts[0];
 
   // Find incidents submitted by the citizen (or sample ones matching citizen)
   const myIncidents = incidents.filter(i => 
@@ -120,37 +122,59 @@ export const CitizenDashboardPage: React.FC = () => {
         )}
 
         {/* 2. ACTIVE REGIONAL PUBLIC ADVISORY STRIP */}
-        <div className="p-5 rounded-3xl bg-[#FF5D67]/10 border border-[#FF5D67]/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-[#FF5D67]/20 border border-[#FF5D67]/40 flex items-center justify-center text-[#FF5D67] shrink-0 mt-0.5">
-              <AlertTriangle className="w-5 h-5 animate-pulse" />
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#FF5D67]">
-                  LEVEL-4 EVACUATION WARNING
-                </span>
-                <span className="text-[11px] text-white/50">· Issued 24 mins ago</span>
+        {primaryAlert && (
+          <div className={`p-5 rounded-3xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all shadow-xl ${
+            primaryAlert.severity === 'critical'
+              ? 'bg-rose-950/20 border-rose-500/40 text-rose-100 shadow-rose-950/20'
+              : 'bg-amber-950/20 border-amber-500/30 text-amber-100'
+          }`}>
+            <div className="flex items-start gap-3.5">
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 ${
+                primaryAlert.severity === 'critical'
+                  ? 'bg-rose-500/20 border border-rose-500/40 text-rose-400'
+                  : 'bg-amber-500/20 border border-amber-500/40 text-amber-400'
+              }`}>
+                <AlertTriangle className={`w-5 h-5 ${primaryAlert.severity === 'critical' ? 'animate-bounce' : 'animate-pulse'}`} />
               </div>
-              <h2 className="text-sm sm:text-base font-bold text-white">
-                Marina Waterfront Sea-Wall Crest & Elevated Inundation
-              </h2>
-              <p className="text-xs text-white/70 max-w-2xl leading-relaxed">
-                Residents in Low-Lying Coastal Sectors A & B must move to designated high-ground shelters. Avoid 14th St underpass (completely submerged). Boil drinking water for 1 full minute.
-              </p>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-mono font-bold uppercase tracking-wider ${
+                    primaryAlert.severity === 'critical' ? 'text-rose-400' : 'text-amber-400'
+                  }`}>
+                    LEVEL {primaryAlert.severity.toUpperCase()} DIRECTIVE · {primaryAlert.type.replace('_', ' ').toUpperCase()}
+                  </span>
+                  <span className="text-[11px] text-white/50">· {new Date(primaryAlert.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <h2 className="text-sm sm:text-base font-bold text-white">
+                  {primaryAlert.title}
+                </h2>
+                <p className="text-xs text-white/70 max-w-2xl leading-relaxed">
+                  {primaryAlert.message}
+                </p>
+                <div className="text-[11px] text-[#38bdf8] font-mono pt-0.5">
+                  Zone: {primaryAlert.affected_area}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                to="/citizen/alerts"
+                className="pill-button-primary text-xs py-2 px-4 cursor-pointer font-bold flex items-center gap-1.5"
+              >
+                <Radio className="w-3.5 h-3.5" />
+                <span>All Directives</span>
+              </Link>
+              <Link
+                to="/citizen/map"
+                className="pill-button-secondary text-xs py-2 px-4 cursor-pointer"
+              >
+                <span>Safe Routes</span>
+                <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+              </Link>
             </div>
           </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <Link
-              to="/citizen/map"
-              className="pill-button-secondary text-xs py-2 px-4 cursor-pointer"
-            >
-              <span>View Safe Routes</span>
-              <ArrowRight className="w-3.5 h-3.5 shrink-0" />
-            </Link>
-          </div>
-        </div>
+        )}
 
         {/* AI CONCISE SAFETY BRIEFING */}
         <div className="p-5 rounded-3xl bg-[#0A1022] border border-white/10 space-y-3">
@@ -170,7 +194,7 @@ export const CitizenDashboardPage: React.FC = () => {
             All emergency responder corridors are maintaining elevated high-ground routing along Van Ness Ave.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 text-xs">
             <Link
               to="/citizen/sos"
               className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 hover:border-rose-400 transition-colors flex items-center justify-between group"
@@ -202,6 +226,17 @@ export const CitizenDashboardPage: React.FC = () => {
                 <span className="text-[10.5px] text-white/50">Verified relief funds</span>
               </div>
               <ArrowRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+
+            <Link
+              to="/citizen/assistant"
+              className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 hover:border-cyan-400 transition-colors flex items-center justify-between group"
+            >
+              <div className="space-y-0.5">
+                <span className="font-bold text-cyan-300 block">AI Safety Assistant</span>
+                <span className="text-[10.5px] text-white/50">Ask evacuation & shelter advice</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-cyan-400 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
         </div>

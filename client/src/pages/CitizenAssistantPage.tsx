@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useDisaster } from '../context/DisasterContext';
 import { api } from '../services/api';
 import { GeminiConfigModal } from '../components/common/GeminiConfigModal';
+import { FormattedMessage } from '../components/common/FormattedMessage';
 import { 
   Sparkles, 
   Send, 
@@ -52,7 +53,7 @@ export const CitizenAssistantPage: React.FC = () => {
   const [isThinking, setIsThinking] = useState(false);
   const [isGeminiModalOpen, setIsGeminiModalOpen] = useState(false);
   const [isGeminiActive, setIsGeminiActive] = useState(false);
-  const [activeModel, setActiveModel] = useState<string>('gemini-2.0-flash');
+  const [activeModel, setActiveModel] = useState<string>('gemini-3.5-flash');
 
   useEffect(() => {
     checkGeminiStatus();
@@ -229,7 +230,11 @@ export const CitizenAssistantPage: React.FC = () => {
                     ? 'bg-[#38bdf8] text-[#020617] font-medium'
                     : 'bg-[#05070d] border border-white/10 text-white/90 whitespace-pre-line'
                 }`}>
-                  <p>{msg.text}</p>
+                  {msg.sender === 'user' ? (
+                    <p>{msg.text}</p>
+                  ) : (
+                    <FormattedMessage content={msg.text} />
+                  )}
                   
                   {/* AI Metadata & Sources Footer */}
                   {msg.sender === 'ai' && (

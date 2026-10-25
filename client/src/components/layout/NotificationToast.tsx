@@ -8,7 +8,7 @@ export const NotificationToast: React.FC = () => {
   if (liveNotifications.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+    <div className="fixed top-20 right-4 sm:right-6 z-40 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
       {liveNotifications.map((notif) => {
         let borderClass = 'border-l-slate-900';
         let icon = <Info className="w-4 h-4 text-slate-700" />;

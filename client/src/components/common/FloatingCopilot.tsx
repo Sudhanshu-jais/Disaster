@@ -26,8 +26,11 @@ import {
   ExternalLink,
   RotateCcw,
   ShieldCheck,
-  Zap
+  Zap,
+  Key
 } from 'lucide-react';
+import { GeminiConfigModal } from './GeminiConfigModal';
+import { FormattedMessage } from './FormattedMessage';
 
 interface ChatMessage {
   id: string;
@@ -62,9 +65,23 @@ export const FloatingCopilot: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [expandedTools, setExpandedTools] = useState<Record<string, boolean>>({});
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [geminiConfigured, setGeminiConfigured] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const currentRole = isOperator ? 'operator' : 'citizen';
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => inputRef.current?.focus(), 150);
+      api.getGeminiStatus().then(res => {
+        if (res && res.configured) {
+          setGeminiConfigured(true);
+        }
+      }).catch(() => {});
+    }
+  }, [isOpen]);
 
   // Seed initial greeting message based on role
   useEffect(() => {
@@ -281,41 +298,42 @@ export const FloatingCopilot: React.FC = () => {
 
   return (
     <>
-      {/* 1. FLOATING LAUNCHER BUTTON */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-full shadow-2xl backdrop-blur-xl border transition-all duration-300 cursor-pointer ${
-          isOpen
-            ? 'bg-white text-[#05070d] border-white scale-95'
-            : isOperator
-            ? 'bg-[#1d4ed8] hover:bg-[#2563eb] text-white border-blue-400/40 shadow-blue-500/20 hover:scale-105'
-            : 'bg-[#0f172a] hover:bg-[#1e293b] text-[#38bdf8] border-[#38bdf8]/40 shadow-cyan-500/20 hover:scale-105'
-        }`}
-        aria-label="Toggle DisasterOS Copilot"
-      >
-        <span className="relative flex items-center justify-center">
-          {isOpen ? (
-            <X className="w-5 h-5" />
-          ) : (
-            <>
-              <Bot className="w-5 h-5 text-current shrink-0" />
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#55D6A7] animate-ping" />
-            </>
-          )}
-        </span>
-        <span className="text-xs font-bold font-sans tracking-wide">
-          {isOpen ? 'Close' : isOperator ? 'DisasterOS Copilot' : 'Safety Assistant'}
-        </span>
-      </button>
+      {/* 1. FLOATING LAUNCHER BUTTON (Visible only when drawer is closed) */}
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-full shadow-2xl backdrop-blur-xl border transition-all duration-300 cursor-pointer ${
+            isOperator
+              ? 'bg-[#1d4ed8] hover:bg-[#2563eb] text-white border-blue-400/40 shadow-blue-500/20 hover:scale-105'
+              : 'bg-[#0f172a] hover:bg-[#1e293b] text-[#38bdf8] border-[#38bdf8]/40 shadow-cyan-500/20 hover:scale-105'
+          }`}
+          aria-label="Toggle DisasterOS Copilot"
+        >
+          <span className="relative flex items-center justify-center">
+            <Bot className="w-5 h-5 text-current shrink-0" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#55D6A7] animate-ping" />
+          </span>
+          <span className="text-xs font-bold font-sans tracking-wide">
+            {isOperator ? 'DisasterOS Copilot' : 'Safety Assistant'}
+          </span>
+        </button>
+      )}
 
       {/* 2. COPILOT SIDE DRAWER / PANEL */}
       {isOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="copilot-panel-title"
-          className="fixed inset-y-0 right-0 z-50 w-full sm:w-[480px] bg-[#0A1022]/98 backdrop-blur-2xl border-l border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300"
-        >
+        <>
+          {/* Backdrop Click-to-Dismiss */}
+          <div
+            onClick={() => setIsOpen(false)}
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in cursor-pointer"
+          />
+
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="copilot-panel-title"
+            className="fixed inset-y-0 right-0 z-50 w-full sm:w-[480px] bg-[#0A1022] border-l border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300"
+          >
           {/* Header */}
           <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
             <div className="flex items-center gap-3">
@@ -342,6 +360,18 @@ export const FloatingCopilot: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setShowKeyModal(true)}
+                className={`p-1.5 rounded-lg text-xs flex items-center gap-1 transition-colors ${
+                  geminiConfigured 
+                    ? 'text-[#38bdf8] bg-[#38bdf8]/10 hover:bg-[#38bdf8]/20 border border-[#38bdf8]/30' 
+                    : 'text-white/50 hover:text-white hover:bg-white/5'
+                }`}
+                title={geminiConfigured ? "Google Gemini AI Active (Click to manage)" : "Connect Google Gemini API Key"}
+              >
+                <Key className="w-3.5 h-3.5" />
+                <span className="text-[10px] hidden sm:inline font-mono">{geminiConfigured ? 'Gemini AI' : 'Key'}</span>
+              </button>
               <button
                 onClick={() => setSoundEnabled(!soundEnabled)}
                 className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/5"
@@ -382,9 +412,13 @@ export const FloatingCopilot: React.FC = () => {
                       : 'bg-white/[0.05] border border-white/10 text-white/90 rounded-bl-xs'
                   }`}
                 >
-                  <div className="whitespace-pre-line prose prose-invert prose-xs">
-                    {msg.text}
-                  </div>
+                  {msg.sender === 'user' ? (
+                    <div className="whitespace-pre-line text-xs font-medium">
+                      {msg.text}
+                    </div>
+                  ) : (
+                    <FormattedMessage content={msg.text} />
+                  )}
 
                   {/* Tool Execution Pill */}
                   {msg.tools_executed && msg.tools_executed.length > 0 && (
@@ -452,13 +486,21 @@ export const FloatingCopilot: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Sources Grounding Tag */}
-                  {msg.sources && msg.sources.length > 0 && (
-                    <div className="mt-2 text-[9.5px] text-white/40 flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
-                      <span>Grounded in: {msg.sources.join(' · ')}</span>
-                    </div>
-                  )}
+                  {/* Attribution & Grounding Tag */}
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {(msg.isGemini || (msg.model && msg.model.includes('gemini'))) && (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-medium text-[#38bdf8] bg-[#38bdf8]/10 px-2 py-0.5 rounded-full border border-[#38bdf8]/20">
+                        <Sparkles className="w-2.5 h-2.5 text-[#38bdf8]" />
+                        <span>Google Gemini AI</span>
+                      </span>
+                    )}
+                    {msg.sources && msg.sources.length > 0 && (
+                      <div className="text-[9.5px] text-white/40 flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
+                        <span>Grounded in: {msg.sources.join(' · ')}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <span className="text-[9.5px] text-white/30 mt-1 px-1">
@@ -499,6 +541,7 @@ export const FloatingCopilot: React.FC = () => {
               className="flex items-center gap-2"
             >
               <input
+                ref={inputRef}
                 type="text"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
@@ -517,7 +560,15 @@ export const FloatingCopilot: React.FC = () => {
             </form>
           </div>
         </div>
-      )}
-    </>
-  );
+      </>
+    )}
+
+    {/* Gemini Key Configuration Modal */}
+    <GeminiConfigModal
+      isOpen={showKeyModal}
+      onClose={() => setShowKeyModal(false)}
+      onKeyUpdated={(active) => setGeminiConfigured(active)}
+    />
+  </>
+);
 };

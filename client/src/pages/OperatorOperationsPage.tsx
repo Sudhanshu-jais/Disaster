@@ -2,6 +2,7 @@
 // Unified Command Workspace synchronizing Tactical GIS, Incident Triage, Live SOS, Responder Telemetry & Resource Dispatch.
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useDisaster } from '../context/DisasterContext';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
@@ -54,8 +55,21 @@ export const OperatorOperationsPage: React.FC = () => {
   const { user } = useAuth();
 
   // Selected incident for contextual panel
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as any;
+  const validTabs = ['triage', 'teams', 'facilities', 'logistics', 'broadcast'];
+  const [activeSubTab, setActiveSubTab] = useState<'triage' | 'teams' | 'facilities' | 'logistics' | 'broadcast'>(
+    validTabs.includes(tabParam) ? tabParam : 'triage'
+  );
+
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t && validTabs.includes(t)) {
+      setActiveSubTab(t as any);
+    }
+  }, [searchParams]);
+
   const [selectedIncidentId, setSelectedIncidentId] = useState<string>(incidents[0]?.id || '');
-  const [activeSubTab, setActiveSubTab] = useState<'triage' | 'teams' | 'facilities' | 'logistics' | 'broadcast'>('triage');
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -222,7 +236,10 @@ export const OperatorOperationsPage: React.FC = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveSubTab(tab.id as any)}
+                onClick={() => {
+                  setActiveSubTab(tab.id as any);
+                  setSearchParams({ tab: tab.id });
+                }}
                 className={`pb-2.5 px-3 text-xs font-semibold transition-colors flex items-center gap-1.5 border-b-2 shrink-0 cursor-pointer ${
                   active ? 'text-[#38bdf8] border-[#38bdf8]' : 'text-white/60 border-transparent hover:text-white'
                 }`}

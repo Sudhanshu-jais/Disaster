@@ -414,7 +414,7 @@ router.get('/ai/gemini-status', (req, res) => {
     return res.json({
       configured: true,
       maskedKey: headerKey.length > 10 ? `${headerKey.slice(0, 6)}...${headerKey.slice(-4)}` : 'Client Key',
-      model: 'gemini-2.0-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
       provider: 'Google Gemini (Header Configured)'
     });
   }
@@ -434,7 +434,7 @@ router.post('/ai/gemini-config', async (req, res) => {
     res.json({
       success: true,
       message: "Gemini API key successfully verified & active!",
-      model: testResult.model || 'gemini-2.0-flash',
+      model: testResult.model || process.env.GEMINI_MODEL || 'gemini-3.5-flash',
       status: aiService.getStatus()
     });
   } catch (err) {
