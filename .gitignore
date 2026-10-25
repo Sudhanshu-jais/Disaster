@@ -4,9 +4,11 @@ node_modules/
 
 # Production builds
 dist/
-*/dist/
 dist-ssr/
 build/
+# Allow client dist for direct zero-config cloud deployments (PieHost)
+!client/dist
+!client/dist/**
 
 # Environment files
 .env

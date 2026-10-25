@@ -5,7 +5,7 @@
   "main": "server.js",
   "private": true,
   "scripts": {
-    "postinstall": "npm install --prefix server && npm install --prefix client",
+    "postinstall": "npm install --prefix server && npm install --prefix client --include=dev && (npm run build --prefix client || true)",
     "build": "npm run build --prefix client",
     "start": "node server/src/index.js",
     "install:all": "npm install --prefix server && npm install --prefix client",
