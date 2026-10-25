@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { emergencySound } from '../services/emergencySound';
 import { EmergencyContact } from '../types';
+import { EmergencyLocationPickerMap } from '../components/map/EmergencyLocationPickerMap';
 import { 
   ShieldAlert, 
   MapPin, 
@@ -121,6 +122,13 @@ export const CitizenSOSPage: React.FC = () => {
     } else {
       setIsDetectingLocation(false);
     }
+  };
+
+  const handleLocationChange = (newLat: number, newLng: number) => {
+    setLatitude(newLat);
+    setLongitude(newLng);
+    setLocationTimestamp(new Date().toLocaleTimeString());
+    setAddress(`Refined GPS Pin (${newLat.toFixed(4)}, ${newLng.toFixed(4)})`);
   };
 
   // Step 1: User clicks trigger -> Show Confirmation Modal
@@ -297,7 +305,7 @@ export const CitizenSOSPage: React.FC = () => {
             </div>
 
             {/* GPS Telemetry & Freshness Status */}
-            <div className="p-4 rounded-2xl bg-[#080D1A] border border-white/10 space-y-2 text-xs font-mono">
+            <div className="p-4 rounded-2xl bg-[#080D1A] border border-white/10 space-y-3 text-xs font-mono">
               <div className="flex items-center justify-between text-white/70">
                 <span>GPS Fix Coordinates:</span>
                 <span className="text-white font-bold">{latitude.toFixed(4)}, {longitude.toFixed(4)}</span>
@@ -312,6 +320,17 @@ export const CitizenSOSPage: React.FC = () => {
               <div className="flex items-center justify-between text-white/70">
                 <span>Address Ingress:</span>
                 <span className="text-white/90">{address}</span>
+              </div>
+
+              {/* Active Distress Beacon Live Map */}
+              <div className="pt-1">
+                <EmergencyLocationPickerMap
+                  latitude={latitude}
+                  longitude={longitude}
+                  accuracyMeters={accuracyMeters}
+                  onLocationChange={() => {}}
+                  height="200px"
+                />
               </div>
             </div>
 
@@ -443,34 +462,48 @@ export const CitizenSOSPage: React.FC = () => {
               </div>
 
               {/* 3. Location & GPS Telemetry */}
-              <div className="space-y-2 p-4 rounded-2xl bg-[#080D1A] border border-white/10">
+              <div className="space-y-3 p-4 sm:p-5 rounded-2xl bg-[#080D1A] border border-white/10">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-white/70">
-                    4. Emergency Location & GPS Accuracy
-                  </label>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-rose-400" />
+                    <label className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+                      4. Emergency Location & GPS Accuracy
+                    </label>
+                  </div>
                   <button
                     type="button"
                     onClick={handleDetectLocation}
                     disabled={isDetectingLocation}
-                    className="text-xs font-mono text-[#38bdf8] hover:underline flex items-center gap-1 cursor-pointer"
+                    className="text-xs font-mono text-[#38bdf8] hover:text-white flex items-center gap-1.5 cursor-pointer bg-white/[0.06] hover:bg-white/[0.12] px-2.5 py-1 rounded-xl border border-white/10 transition-colors disabled:opacity-50"
                   >
-                    <LocateFixed className="w-3.5 h-3.5" />
+                    <LocateFixed className={`w-3.5 h-3.5 ${isDetectingLocation ? 'animate-spin' : ''}`} />
                     <span>{isDetectingLocation ? 'Fixing GPS...' : 'Auto-Detect GPS'}</span>
                   </button>
                 </div>
 
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="w-full bg-[#05070d] border border-white/15 focus:border-[#38bdf8] rounded-xl px-3.5 py-2 text-xs text-white font-mono"
-                  placeholder="Street Address or Sector"
-                  required
+                {/* Interactive Emergency GPS Map */}
+                <EmergencyLocationPickerMap
+                  latitude={latitude}
+                  longitude={longitude}
+                  accuracyMeters={accuracyMeters}
+                  onLocationChange={handleLocationChange}
+                  isDetectingLocation={isDetectingLocation}
+                  onDetectLocation={handleDetectLocation}
+                  height="260px"
                 />
 
-                <div className="flex items-center justify-between text-[11px] font-mono text-white/50 pt-1">
-                  <span>Fix: {latitude.toFixed(4)}, {longitude.toFixed(4)}</span>
-                  <span className="text-emerald-400 font-bold">Accuracy: ±{accuracyMeters}m</span>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-mono text-white/50 block">
+                    Street Address, Building, Floor or Landmark Note
+                  </label>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="w-full bg-[#05070d] border border-white/15 focus:border-[#38bdf8] focus:outline-none rounded-xl px-3.5 py-2.5 text-xs text-white font-mono placeholder-white/30"
+                    placeholder="e.g. 842 Pine Street, Apt 1B, 2nd floor window facing courtyard"
+                    required
+                  />
                 </div>
               </div>
 

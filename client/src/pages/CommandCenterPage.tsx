@@ -58,14 +58,16 @@ export const CommandCenterPage: React.FC = () => {
   const [severityFilter, setSeverityFilter] = useState<'all' | 'critical' | 'high' | 'medium'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'unresolved' | 'resolved'>('all');
   
-  // Selected Incident for Contextual Panel
-  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(() => incidents[0] || null);
+  // Selected Incident ID for Contextual Panel (Auto-syncs with incidents state updates)
+  const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(() => incidents[0]?.id || null);
 
-  useEffect(() => {
-    if (!selectedIncident && incidents.length > 0) {
-      setSelectedIncident(incidents[0]);
+  const selectedIncident = useMemo(() => {
+    if (selectedIncidentId) {
+      const match = (incidents || []).find(i => i.id === selectedIncidentId);
+      if (match) return match;
     }
-  }, [incidents, selectedIncident]);
+    return (incidents && incidents[0]) || null;
+  }, [incidents, selectedIncidentId]);
 
   // Bottom drawer active tab
   const [bottomTab, setBottomTab] = useState<'teams' | 'hospitals' | 'inventory' | 'shelters'>('teams');
@@ -85,18 +87,25 @@ export const CommandCenterPage: React.FC = () => {
   const [newTrapped, setNewTrapped] = useState(4);
 
   // Resource Dispatch Inline Form
-  const [selectedResourceType, setSelectedResourceType] = useState('Medical Trauma Kits');
+  const [selectedResourceType, setSelectedResourceType] = useState(() => (inventory && inventory[0]?.item_name) || 'Trauma Surgical Packs & Bandages');
   const [selectedQty, setSelectedQty] = useState(5);
   const [allocError, setAllocError] = useState<string | null>(null);
   const [allocSuccess, setAllocSuccess] = useState<string | null>(null);
 
-  // Filtered incidents
+  useEffect(() => {
+    if (inventory && inventory.length > 0 && !inventory.some(i => i.item_name === selectedResourceType)) {
+      setSelectedResourceType(inventory[0].item_name);
+    }
+  }, [inventory, selectedResourceType]);
+
+  // Filtered incidents with null/undefined safety
   const filteredIncidents = useMemo(() => {
-    return incidents.filter(i => {
-      const matchesSearch = 
-        i.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        i.tracking_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (i.address && i.address.toLowerCase().includes(searchQuery.toLowerCase()));
+    const q = searchQuery.toLowerCase().trim();
+    return (incidents || []).filter(i => {
+      const matchesSearch = !q ||
+        (i.title || '').toLowerCase().includes(q) ||
+        (i.tracking_code || '').toLowerCase().includes(q) ||
+        (i.address && i.address.toLowerCase().includes(q));
 
       const matchesSeverity = severityFilter === 'all' || i.severity === severityFilter;
       const matchesStatus = 
@@ -108,9 +117,9 @@ export const CommandCenterPage: React.FC = () => {
     });
   }, [incidents, searchQuery, severityFilter, statusFilter]);
 
-  const criticalCount = incidents.filter(i => i.severity === 'critical' && i.status !== 'resolved').length;
-  const availableTeamsCount = rescueTeams.filter(t => t.status === 'available').length;
-  const totalBedsAvailable = hospitals.reduce((acc, h) => acc + h.available_beds, 0);
+  const criticalCount = (incidents || []).filter(i => i.severity === 'critical' && i.status !== 'resolved').length;
+  const availableTeamsCount = (rescueTeams || []).filter(t => t.status === 'available').length;
+  const totalBedsAvailable = (hospitals || []).reduce((acc, h) => acc + (h.available_beds || 0), 0);
 
   // Handle Create Incident Submission
   const handleCreateIncident = async (e: React.FormEvent) => {
@@ -131,7 +140,9 @@ export const CommandCenterPage: React.FC = () => {
       has_children_elderly: newChildren
     });
 
-    setSelectedIncident(created);
+    if (created?.id) {
+      setSelectedIncidentId(created.id);
+    }
     setCreateModalOpen(false);
     // Reset form
     setNewTitle('');
@@ -280,11 +291,11 @@ export const CommandCenterPage: React.FC = () => {
         
         {/* Left Column: Interactive Leaflet Map (Col 7) */}
         <div className="lg:col-span-7 flex flex-col space-y-3">
-          <div className="relative rounded-2xl overflow-hidden border border-white/[0.08] shadow-xl flex-1 min-h-[420px] lg:min-h-[540px]">
+          <div className="relative rounded-2xl overflow-hidden border border-white/[0.08] shadow-xl flex-1 min-h-[520px] lg:min-h-[580px] h-[520px] lg:h-[580px]">
             <DisasterMap
               height="100%"
               selectedIncident={selectedIncident}
-              onSelectIncident={(inc) => setSelectedIncident(inc)}
+              onSelectIncident={(inc) => setSelectedIncidentId(inc.id)}
               enableMapClick={true}
               onLocationSelect={(lat, lng) => {
                 setNewLat(lat);
@@ -330,7 +341,7 @@ export const CommandCenterPage: React.FC = () => {
                 return (
                   <div
                     key={inc.id}
-                    onClick={() => setSelectedIncident(inc)}
+                    onClick={() => setSelectedIncidentId(inc.id)}
                     className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative ${
                       isSelected
                         ? 'bg-[#0D162B] border-[#63BDF5] shadow-[0_0_20px_rgba(99,189,245,0.2)]'
@@ -373,7 +384,7 @@ export const CommandCenterPage: React.FC = () => {
                       <span className={`capitalize font-semibold ${
                         inc.status === 'resolved' ? 'text-[#55D6A7]' : inc.status === 'in_progress' ? 'text-[#35D6E8]' : 'text-[#FFB454]'
                       }`}>
-                        {inc.status.replace('_', ' ')}
+                        {(inc.status || 'submitted').replace('_', ' ')}
                       </span>
                     </div>
                   </div>
@@ -477,11 +488,20 @@ export const CommandCenterPage: React.FC = () => {
                     onChange={(e) => setSelectedResourceType(e.target.value)}
                     className="flex-1 bg-[#050817] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#63BDF5]/50"
                   >
-                    <option value="Medical Trauma Kits">Trauma Medical Kits (Level-A)</option>
-                    <option value="Drinking Water">Drinking Water (10L Sealed)</option>
-                    <option value="MRE Ration Packs">MRE Ration Packs (72-hr)</option>
-                    <option value="Inflatable Tents">Inflatable Weather Tents</option>
-                    <option value="Heavy Diesel Generators">Portable Diesel Generators</option>
+                    {inventory.length > 0 ? (
+                      inventory.map(item => (
+                        <option key={item.id} value={item.item_name}>
+                          {item.item_name} ({item.quantity_available} {item.unit})
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="Trauma Surgical Packs & Bandages">Trauma Surgical Packs & Bandages</option>
+                        <option value="Clean Potable Water (10L Jugs)">Clean Potable Water (10L Jugs)</option>
+                        <option value="Ready-To-Eat Emergency Meal Kits (MRE)">Ready-To-Eat Emergency Meal Kits (MRE)</option>
+                        <option value="Fleece Thermal Hypothermia Blankets">Fleece Thermal Hypothermia Blankets</option>
+                      </>
+                    )}
                   </select>
 
                   <input

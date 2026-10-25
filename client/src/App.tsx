@@ -50,6 +50,7 @@ import { AuditLogsPage } from './pages/AuditLogsPage';
 import { WorkspaceSettingsPage } from './pages/WorkspaceSettingsPage';
 import { NgoVolunteersPage } from './pages/NgoVolunteersPage';
 import { ResourceReallocationPage } from './pages/ResourceReallocationPage';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Resilient Route Guard that never throws dead-end 403 blocks during evaluation
 const ProtectedRoute: React.FC<{
@@ -64,10 +65,17 @@ const ProtectedRoute: React.FC<{
     } else if (requireRole === 'operator' && isCitizen) {
       // Seamlessly switch role to operator when accessing operator features
       quickDemoLogin('operator');
+    } else if (requireRole === 'citizen' && !isCitizen) {
+      // Seamlessly switch role to citizen when accessing citizen features
+      quickDemoLogin('citizen');
     }
   }, [isAuthenticated, requireRole, isCitizen, quickDemoLogin]);
 
-  return <>{children}</>;
+  return (
+    <ErrorBoundary fallbackTitle={requireRole === 'operator' ? 'Incident Command Center Recovering' : 'Citizen Workspace Recovering'}>
+      {children}
+    </ErrorBoundary>
+  );
 };
 
 // Animated Routes wrapper for smooth page transitions and navbar spacing

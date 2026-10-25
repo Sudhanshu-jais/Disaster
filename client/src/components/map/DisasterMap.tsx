@@ -74,18 +74,35 @@ function MapViewController({
   const map = useMap();
 
   useEffect(() => {
+    // Invalidate size in next tick to ensure canvas matches container geometry
+    const timer = setTimeout(() => {
+      try {
+        map.invalidateSize();
+      } catch {}
+    }, 60);
+
     const focusTarget = selectedIncident || latestSOS;
-    if (focusTarget && Number.isFinite(focusTarget.latitude) && Number.isFinite(focusTarget.longitude)) {
-      map.flyTo([Number(focusTarget.latitude), Number(focusTarget.longitude)], 15, {
-        animate: true,
-        duration: 1.2
-      });
+    if (focusTarget && Number.isFinite(Number(focusTarget.latitude)) && Number.isFinite(Number(focusTarget.longitude))) {
+      try {
+        map.flyTo([Number(focusTarget.latitude), Number(focusTarget.longitude)], 15, {
+          animate: true,
+          duration: 1.2
+        });
+      } catch (err) {
+        console.warn('Map flyTo failed:', err);
+      }
     } else if (targetCenter && Number.isFinite(targetCenter[0]) && Number.isFinite(targetCenter[1])) {
-      map.flyTo(targetCenter, targetZoom || map.getZoom(), {
-        animate: true,
-        duration: 1.0
-      });
+      try {
+        map.flyTo(targetCenter, targetZoom || map.getZoom(), {
+          animate: true,
+          duration: 1.0
+        });
+      } catch (err) {
+        console.warn('Map flyTo failed:', err);
+      }
     }
+
+    return () => clearTimeout(timer);
   }, [selectedIncident, latestSOS, targetCenter, targetZoom, map]);
 
   return null;
@@ -194,8 +211,15 @@ export const DisasterMap: React.FC<DisasterMapProps> = ({
   // Wildfire danger zone circle center
   const fireZoneCenter: [number, number] = [37.7520, -122.3875];
 
+  const isPercentHeight = typeof height === 'string' && height.includes('%');
+  const computedHeight = isPercentHeight ? '100%' : height;
+  const minHeightVal = isPercentHeight ? '540px' : undefined;
+
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl bg-[#050817]">
+    <div 
+      className="relative rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl bg-[#050817] w-full h-full flex flex-col"
+      style={{ minHeight: minHeightVal }}
+    >
       
       {/* Top Filter Bar Overlay */}
       <div className="absolute top-3 left-3 z-[1000] bg-[#0D162B]/90 backdrop-blur-xl rounded-xl border border-white/10 shadow-lg p-1.5 flex flex-wrap items-center gap-1.5 text-xs">
@@ -410,12 +434,15 @@ export const DisasterMap: React.FC<DisasterMapProps> = ({
       )}
 
       {/* Main Leaflet Map View */}
-      <div style={{ height }}>
+      <div 
+        className="w-full flex-1 relative"
+        style={{ height: computedHeight, minHeight: minHeightVal }}
+      >
         <MapContainer
           center={defaultCenter}
           zoom={zoomLevel}
           scrollWheelZoom={true}
-          style={{ width: '100%', height: '100%' }}
+          style={{ width: '100%', height: '100%', minHeight: minHeightVal }}
         >
           {/* Dynamic Map Camera Controller */}
           <MapViewController 
@@ -498,7 +525,7 @@ export const DisasterMap: React.FC<DisasterMapProps> = ({
           )}
 
           {/* Incidents Markers */}
-          {layers.incidents && incidents.map(inc => {
+          {layers.incidents && (incidents || []).filter(inc => Number.isFinite(Number(inc.latitude)) && Number.isFinite(Number(inc.longitude))).map(inc => {
             const isSelected = selectedIncident?.id === inc.id;
             const isCritical = inc.severity === 'critical';
             const icon = isCritical
@@ -542,7 +569,7 @@ export const DisasterMap: React.FC<DisasterMapProps> = ({
           })}
 
           {/* Rescue Teams */}
-          {layers.teams && rescueTeams.map(team => (
+          {layers.teams && (rescueTeams || []).filter(team => Number.isFinite(Number(team.current_lat)) && Number.isFinite(Number(team.current_lng))).map(team => (
             <Marker
               key={team.id}
               position={[Number(team.current_lat), Number(team.current_lng)]}
@@ -559,7 +586,7 @@ export const DisasterMap: React.FC<DisasterMapProps> = ({
           ))}
 
           {/* Hospitals */}
-          {layers.hospitals && hospitals.map(hosp => (
+          {layers.hospitals && (hospitals || []).filter(hosp => Number.isFinite(Number(hosp.latitude)) && Number.isFinite(Number(hosp.longitude))).map(hosp => (
             <Marker
               key={hosp.id}
               position={[Number(hosp.latitude), Number(hosp.longitude)]}
@@ -576,7 +603,7 @@ export const DisasterMap: React.FC<DisasterMapProps> = ({
           ))}
 
           {/* Shelters */}
-          {layers.shelters && shelters.map(shelt => (
+          {layers.shelters && (shelters || []).filter(shelt => Number.isFinite(Number(shelt.latitude)) && Number.isFinite(Number(shelt.longitude))).map(shelt => (
             <Marker
               key={shelt.id}
               position={[Number(shelt.latitude), Number(shelt.longitude)]}
@@ -593,7 +620,7 @@ export const DisasterMap: React.FC<DisasterMapProps> = ({
           ))}
 
           {/* Road Hazards */}
-          {layers.hazards && hazards.map(haz => (
+          {layers.hazards && (hazards || []).filter(haz => Number.isFinite(Number(haz.latitude)) && Number.isFinite(Number(haz.longitude))).map(haz => (
             <Marker
               key={haz.id}
               position={[Number(haz.latitude), Number(haz.longitude)]}
